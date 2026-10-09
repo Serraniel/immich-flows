@@ -10,16 +10,30 @@ import (
 
 	"github.com/serraniel/immich-flows/internal/auth"
 	"github.com/serraniel/immich-flows/internal/connect"
+	"github.com/serraniel/immich-flows/internal/engine"
 	"github.com/serraniel/immich-flows/internal/flows"
 	"github.com/serraniel/immich-flows/internal/immich"
 )
 
-// Server holds API dependencies.
+// Deps are the API's dependencies.
+type Deps struct {
+	Immich *url.URL
+	Auth   *auth.Authenticator
+	Conn   *connect.Manager
+	Flows  FlowLister
+	Runner Runner
+	Jobs   engine.Enqueuer
+	Log    *slog.Logger
+}
+
+// Server serves the API.
 type Server struct {
 	auth      *auth.Authenticator
 	conn      *connect.Manager
 	immichURL *url.URL
 	flows     FlowLister
+	runner    Runner
+	jobs      engine.Enqueuer
 	log       *slog.Logger
 }
 
@@ -29,8 +43,8 @@ type FlowLister interface {
 }
 
 // New returns the API handler mounted at prefix (e.g. "/_flows/api").
-func New(prefix string, immichURL *url.URL, a *auth.Authenticator, conn *connect.Manager, fl FlowLister, log *slog.Logger) http.Handler {
-	s := &Server{auth: a, conn: conn, immichURL: immichURL, flows: fl, log: log}
+func New(prefix string, d Deps) http.Handler {
+	s := &Server{auth: d.Auth, conn: d.Conn, immichURL: d.Immich, flows: d.Flows, runner: d.Runner, jobs: d.Jobs, log: d.Log}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+prefix+"/me", s.me)
 	mux.HandleFunc("GET "+prefix+"/connection", s.connectionStatus)
@@ -38,10 +52,11 @@ func New(prefix string, immichURL *url.URL, a *auth.Authenticator, conn *connect
 	mux.HandleFunc("DELETE "+prefix+"/connection", s.disconnect)
 	mux.HandleFunc("POST "+prefix+"/tags/move", s.moveTag)
 	mux.Handle("GET "+prefix+"/flows", auth.RequireAdmin(http.HandlerFunc(s.listFlows)))
+	mux.HandleFunc("POST "+prefix+"/flows/{id}/run", s.runFlow)
 	mux.HandleFunc(prefix+"/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, "not found")
 	})
-	return a.Middleware(mux)
+	return d.Auth.Middleware(mux)
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {

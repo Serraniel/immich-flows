@@ -147,3 +147,29 @@ func TestFlowOnTagAssigned(t *testing.T) {
 		t.Errorf("tags: %v", got)
 	}
 }
+
+func TestManualRunBackfill(t *testing.T) {
+	c := adminClient(t)
+	c.json(http.MethodDelete, "/_flows/api/connection", nil, nil)
+	id := c.upload(fmt.Sprintf("SERVICE-A_%d_old_photo.jpg", time.Now().UnixNano()), randomJPEG(t)).ID
+	c.waitIdle()
+	if got := c.assetTags(id); len(got) != 0 {
+		t.Fatalf("flow ran without connection: %v", got)
+	}
+
+	c.connect()
+	var res struct {
+		Queued int `json:"queued"`
+	}
+	if s := c.json(http.MethodPost, "/_flows/api/flows/e2e-service-tags/run", map[string]any{"assetIds": []string{id}}, &res); s != http.StatusAccepted || res.Queued != 1 {
+		t.Fatalf("run: %d %+v", s, res)
+	}
+	c.waitTags(id, []string{"e2e-service-a/old", "e2e-service-a/photo"})
+
+	if s := c.json(http.MethodPost, "/_flows/api/flows/missing/run", map[string]any{"all": true}, nil); s != http.StatusNotFound {
+		t.Errorf("unknown flow: %d", s)
+	}
+	if s := c.json(http.MethodPost, "/_flows/api/flows/e2e-service-tags/run", map[string]any{"assetIds": []string{"x"}}, nil); s != http.StatusBadRequest {
+		t.Errorf("invalid id: %d", s)
+	}
+}
