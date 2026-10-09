@@ -22,6 +22,29 @@ steps:
 
 Full example: [examples/flows/service-tags.yaml](../examples/flows/service-tags.yaml).
 
+JSON Schema for editor completion: [flow.schema.json](flow.schema.json). Add to the top of a flow file:
+
+```yaml
+# yaml-language-server: $schema=https://github.com/serraniel/immich-flows/raw/main/docs/flow.schema.json
+```
+
+## Structure
+
+| Field | Description |
+| --- | --- |
+| `id` | `[a-z0-9][a-z0-9_-]*`, unique |
+| `enabled` | default `true` |
+| `trigger.on`, `trigger.if` | event and optional filter expression |
+| `steps[].id` | needed to reference outputs as `steps.<id>`; unique within the flow |
+| `steps[].use` | step type |
+| `steps[].if` | skip the step if false |
+| `steps[].with` | step input |
+| `steps[].continueOnError` | default `false`: a failing step stops the run |
+| `steps[].cases` | only for `use: switch`; first case whose `if` is true runs, a case without `if` is the default and must be last |
+| `ui` | editor state, ignored by the engine |
+
+Unknown fields are errors.
+
 ## Sources
 
 Flows load from `/data/flows/*.yaml` (read-only in UI, GitOps-friendly) and from the UI (stored in the database, exportable as YAML).
@@ -48,7 +71,7 @@ Flows load from `/data/flows/*.yaml` (read-only in UI, GitOps-friendly) and from
 | `hash` | `source: original\|stored`, `algorithms: [md5, sha1, sha256, sha512]` |
 | `regex` | named groups become outputs |
 | `set` | assign variables |
-| `switch` / `if` | branch |
+| `switch` | branch, see `cases` |
 | `tag.read` | tags of an asset, optional prefix filter |
 | `tag.assign` / `tag.remove` | create missing tags (hierarchical `a/b/c`), assign |
 | `tag.merge` | union tags of several assets onto targets |
