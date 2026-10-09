@@ -26,7 +26,7 @@ immich-server ── native workflow step "immich-flows#emit" (WASM) ── HTTP
 - **Upload hook**: tees the multipart body; the `assetData` part is hashed while bytes are forwarded. No buffering, no re-encoding.
 - **Engine**: flows are DAGs of steps. Runs are queued in SQLite, executed asynchronously with retries, so uploads are never delayed. Pre-hooks that must block (e.g. duplicate resolution) have a timeout and fail open.
 - **Identity**: Immich tags are per user. Each user connects once via the UI; immich-flows creates a scoped Immich API key on their behalf and stores it encrypted. Runs act as the asset owner.
-- **UI auth**: reuses the Immich session (cookie or API key), validated against `/api/users/me`.
+- **UI/API auth**: reuses the Immich session (cookie, bearer token or `x-api-key`), validated against `/api/users/me` and cached for 1 minute. Admin-only routes return 403 for other users.
 
 ## Hooked routes
 
