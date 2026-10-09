@@ -18,7 +18,8 @@ type Config struct {
 	Immich   *url.URL // direct Immich URL for API calls made by immich-flows
 	DataDir  string
 	LogLevel slog.Level
-	Workers  int // concurrent flow jobs
+	Workers  int    // concurrent flow jobs
+	Secret   string // encrypts stored API keys; generated in DataDir if empty
 }
 
 // Load reads the configuration from the environment.
@@ -37,6 +38,7 @@ func load(getenv func(string) string) (*Config, error) {
 	c := &Config{
 		Listen:  get("IMMICH_FLOWS_LISTEN", ":2283"),
 		DataDir: get("IMMICH_FLOWS_DATA_DIR", "/data"),
+		Secret:  get("IMMICH_FLOWS_SECRET", ""),
 	}
 
 	raw := get("IMMICH_FLOWS_UPSTREAM_URL", "")

@@ -38,6 +38,10 @@ With a converter (immich-flows → upload optimizer → Immich): see [examples/c
 
 Image tags: `latest`, `X.Y.Z`, `X.Y`, `edge` (main branch).
 
+## Setup
+
+Open `https://<your-immich>/_flows/` and click **Connect**. This creates an Immich API key for immich-flows with only the permissions flows need (assets: read/update/download, tags, duplicates: read). Flows only run for connected users.
+
 ## Configuration
 
 | Variable | Default | Description |
@@ -47,6 +51,7 @@ Image tags: `latest`, `X.Y.Z`, `X.Y`, `edge` (main branch).
 | `IMMICH_FLOWS_LISTEN` | `:2283` | Listen address |
 | `IMMICH_FLOWS_DATA_DIR` | `/data` | Database and flow files |
 | `IMMICH_FLOWS_WORKERS` | `4` | Concurrent flow jobs |
+| `IMMICH_FLOWS_SECRET` | generated | Encrypts stored Immich API keys. If unset, a key is generated in `/data/secret.key` |
 | `IMMICH_FLOWS_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 
 ## Docs

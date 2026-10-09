@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -21,7 +22,7 @@ func TestMe(t *testing.T) {
 	}))
 	defer immich.Close()
 	u, _ := url.Parse(immich.URL)
-	h := New("/_flows/api", auth.New(u, nil))
+	h := New("/_flows/api", auth.New(u, nil), nil, slog.New(slog.DiscardHandler))
 
 	req := httptest.NewRequest(http.MethodGet, "/_flows/api/me", nil)
 	req.Header.Set("x-api-key", "k")
