@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +18,7 @@ type Config struct {
 	Immich   *url.URL // direct Immich URL for API calls made by immich-flows
 	DataDir  string
 	LogLevel slog.Level
+	Workers  int // concurrent flow jobs
 }
 
 // Load reads the configuration from the environment.
@@ -47,6 +49,9 @@ func load(getenv func(string) string) (*Config, error) {
 	}
 	if c.Immich, err = parseURL("IMMICH_FLOWS_IMMICH_URL", get("IMMICH_FLOWS_IMMICH_URL", raw)); err != nil {
 		return nil, err
+	}
+	if c.Workers, err = strconv.Atoi(get("IMMICH_FLOWS_WORKERS", "4")); err != nil || c.Workers < 1 {
+		return nil, fmt.Errorf("IMMICH_FLOWS_WORKERS: must be a positive integer")
 	}
 	if err := c.LogLevel.UnmarshalText([]byte(get("IMMICH_FLOWS_LOG_LEVEL", "info"))); err != nil {
 		return nil, fmt.Errorf("IMMICH_FLOWS_LOG_LEVEL: %w", err)
