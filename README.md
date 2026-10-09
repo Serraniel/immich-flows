@@ -32,6 +32,8 @@ services:
     restart: always
 ```
 
+The container runs as UID `65532`. For bind mounts: `mkdir flows && sudo chown 65532:65532 flows`.
+
 With a converter (immich-flows → upload optimizer → Immich): see [examples/compose.yaml](examples/compose.yaml).
 
 Image tags: `latest`, `X.Y.Z`, `X.Y`, `edge` (main branch).

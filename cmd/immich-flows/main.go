@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/serraniel/immich-flows/internal/config"
 	"github.com/serraniel/immich-flows/internal/proxy"
+	"github.com/serraniel/immich-flows/internal/store"
 )
 
 var version = "dev"
@@ -36,14 +38,23 @@ func run() error {
 	}
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
+		return err
+	}
+	db, err := store.Open(ctx, filepath.Join(cfg.DataDir, "immich-flows.db"))
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer func() { _ = db.Close() }()
+
 	srv := &http.Server{
 		Addr:              cfg.Listen,
 		Handler:           proxy.New(cfg.Upstream, log),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	errc := make(chan error, 1)
 	go func() {
