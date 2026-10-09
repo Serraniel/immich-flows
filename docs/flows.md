@@ -99,7 +99,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | `tag.assign` | `tags` (string or list; `a/b/c` creates parents), `asset`/`assets` (default: run's asset). Outputs: `tags`, `count` |
 | `tag.remove` | `tags`, `asset`/`assets`. Removes the tags from the assets, keeps the tags |
 | `tag.read` | `asset`, `prefix`. Outputs: `tags` (full values), `names` (last segment), `count` |
-| `tag.merge` | union tags of several assets onto targets |
+| `tag.merge` | `from` (asset IDs), `to` (default: run's asset), `prefix`. Applies the union of the `from` assets' tags to `to`. Outputs: `tags`, `count` |
 | `metadata.set` | write a JSON object to Immich asset metadata (`PUT /api/assets/:id/metadata`) |
 | `http` (low priority) | call a webhook |
 | `log` | write to run log |
