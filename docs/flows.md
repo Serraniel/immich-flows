@@ -91,7 +91,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 
 | Step | Purpose |
 | --- | --- |
-| `hash` | `source: original\|stored`, `algorithms: [md5, sha1, sha256, sha512]` |
+| `hash` | `source`: `original` (bytes the client uploaded, `asset.uploaded` only) or `stored` (file in Immich, default). `algorithms`: `md5`, `sha1`, `sha256`, `sha512` (default `[md5, sha1]`). Outputs: one hex string per algorithm, `size` |
 | `regex` | `input`, `pattern` (RE2), `caseInsensitive`. Outputs: `matched`, `match`, `groups`, and each named group |
 | `split` | `input`, `separator` (default `_`), `trim`, `skipEmpty` (both default true). Outputs: `items`, `count` |
 | `set` | any keys; available as `vars.<key>` |

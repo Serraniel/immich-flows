@@ -3,6 +3,10 @@
 package e2e
 
 import (
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"testing"
@@ -49,4 +53,19 @@ func TestFlowTagsUploadFromFilename(t *testing.T) {
 	if got := c.assetTags(other.ID); len(got) != 0 {
 		t.Errorf("flow ran for non-matching file: %v", got)
 	}
+}
+
+func TestFlowHashTags(t *testing.T) {
+	c := adminClient(t)
+	c.connect()
+	data := randomJPEG(t)
+	up := c.upload("HASHED_x.jpg", data)
+	md, s1, s256 := md5.Sum(data), sha1.Sum(data), sha256.Sum256(data)
+	// No converter in the e2e stack: original and stored bytes are equal.
+	c.waitTags(up.ID, []string{
+		"e2e-hashes/MD5/ORIGINAL/" + hex.EncodeToString(md[:]),
+		"e2e-hashes/MD5/STORED/" + hex.EncodeToString(md[:]),
+		"e2e-hashes/SHA1/STORED/" + hex.EncodeToString(s1[:]),
+		"e2e-hashes/SHA256/ORIGINAL/" + hex.EncodeToString(s256[:]),
+	})
 }
