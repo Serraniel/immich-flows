@@ -178,6 +178,13 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			out = append(out, f.tagDTO(f.upsert(v)))
 		}
 		f.json(w, out)
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/tags/"):
+		t, ok := f.tags[strings.TrimPrefix(path, "/tags/")]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		f.json(w, f.tagDTO(t))
 	case r.Method == http.MethodPut && path == "/tags/assets":
 		var body struct {
 			TagIDs   []string `json:"tagIds"`

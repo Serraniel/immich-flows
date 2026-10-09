@@ -133,3 +133,17 @@ func TestFlowDuplicatesResolved(t *testing.T) {
 	// Immich merges the trashed asset's tags itself; the flow adds its own tag.
 	c.waitTags(keep, []string{"e2e-dup/a", "e2e-dup/b", "e2e-dup/resolved-1"})
 }
+
+func TestFlowOnTagAssigned(t *testing.T) {
+	c := adminClient(t)
+	c.connect()
+	id := c.upload("tagged.jpg", randomJPEG(t)).ID
+	c.waitIdle()
+	c.tagAsset(id, "e2e-trigger/sunset")
+	c.waitTags(id, []string{"e2e-trigger/sunset", "e2e-triggered/sunset"})
+	// The flow's own tag.assign goes directly to Immich: no second event, no loop.
+	c.waitIdle()
+	if got := c.assetTags(id); len(got) != 2 {
+		t.Errorf("tags: %v", got)
+	}
+}
