@@ -5,6 +5,7 @@ go 1.27
 tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 
 require (
+	github.com/expr-lang/expr v1.17.8
 	github.com/invopop/jsonschema v0.14.0
 	github.com/oapi-codegen/runtime v1.7.0
 	go.yaml.in/yaml/v3 v3.0.4
