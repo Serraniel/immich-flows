@@ -18,6 +18,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/flow"
 	"github.com/serraniel/immich-flows/internal/proxy"
 	"github.com/serraniel/immich-flows/internal/store"
+	"github.com/serraniel/immich-flows/internal/web"
 )
 
 var version = "dev"
@@ -64,7 +65,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           proxy.New(cfg.Upstream, log),
+		Handler:           routes(proxy.New(cfg.Upstream, log)),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 
@@ -86,6 +87,14 @@ func run() error {
 		return err
 	}
 	return nil
+}
+
+func routes(px http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle(proxy.Prefix+"/", web.Handler(proxy.Prefix))
+	mux.Handle("GET "+proxy.Prefix+"/healthz", px)
+	mux.Handle("/", px)
+	return mux
 }
 
 // healthcheck is used by the Docker HEALTHCHECK; the runtime image has no shell or curl.

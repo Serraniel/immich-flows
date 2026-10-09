@@ -3,3 +3,6 @@
 docs
 examples
 *.md
+web/node_modules
+web/.svelte-kit
+internal/web/dist
