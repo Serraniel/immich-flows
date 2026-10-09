@@ -1,0 +1,14 @@
+id: e2e-service-tags
+trigger:
+  on: asset.uploaded
+  if: 'asset.originalFileName startsWith "SERVICE-A_"'
+steps:
+  - id: parse
+    use: regex
+    with:
+      input: '{{ asset.baseName }}'
+      pattern: '^SERVICE-A_(?P<id>[^_]+)_(?P<tags>.+)$'
+  - use: tag.assign
+    if: steps.parse.matched
+    with:
+      tags: '{{ split(steps.parse.tags, "_") | map("e2e-service-a/" + #) }}'

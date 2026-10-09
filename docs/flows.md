@@ -96,8 +96,9 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | `split` | `input`, `separator` (default `_`), `trim`, `skipEmpty` (both default true). Outputs: `items`, `count` |
 | `set` | any keys; available as `vars.<key>` |
 | `switch` | branch, see `cases` |
-| `tag.read` | tags of an asset, optional prefix filter |
-| `tag.assign` / `tag.remove` | create missing tags (hierarchical `a/b/c`), assign |
+| `tag.assign` | `tags` (string or list; `a/b/c` creates parents), `asset`/`assets` (default: run's asset). Outputs: `tags`, `count` |
+| `tag.remove` | `tags`, `asset`/`assets`. Removes the tags from the assets, keeps the tags |
+| `tag.read` | `asset`, `prefix`. Outputs: `tags` (full values), `names` (last segment), `count` |
 | `tag.merge` | union tags of several assets onto targets |
 | `metadata.set` | write a JSON object to Immich asset metadata (`PUT /api/assets/:id/metadata`) |
 | `http` (low priority) | call a webhook |
