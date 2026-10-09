@@ -11,7 +11,7 @@ func TestLoadDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Listen != ":2283" || c.DataDir != "/data" || c.Workers != 4 {
+	if c.Listen != ":2283" || c.DataDir != "/data" || c.Workers != 4 || c.FlowsDir != "/data/flows" {
 		t.Errorf("unexpected defaults: %+v", c)
 	}
 	if c.Immich.String() != c.Upstream.String() {

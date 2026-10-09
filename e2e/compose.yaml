@@ -9,6 +9,9 @@ services:
     environment:
       IMMICH_FLOWS_UPSTREAM_URL: http://immich-server:2283
       IMMICH_FLOWS_LOG_LEVEL: debug
+      IMMICH_FLOWS_FLOWS_DIR: /flows
+    volumes:
+      - ./flows:/flows:ro
     tmpfs:
       - /data:uid=65532,gid=65532
     depends_on:

@@ -1,0 +1,5 @@
+id: e2e-invalid
+trigger:
+  on: manual
+steps:
+  - use: does-not-exist

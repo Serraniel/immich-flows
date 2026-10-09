@@ -17,6 +17,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/connect"
 	"github.com/serraniel/immich-flows/internal/engine"
 	"github.com/serraniel/immich-flows/internal/events"
+	"github.com/serraniel/immich-flows/internal/flows"
 	"github.com/serraniel/immich-flows/internal/hooks"
 	"github.com/serraniel/immich-flows/internal/immich"
 	"github.com/serraniel/immich-flows/internal/proxy"
@@ -43,9 +44,16 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	conn := connect.New(db, key, cfg.Immich, nil)
 	users := auth.New(cfg.Immich, nil)
 
+	reg := engine.NewRegistry()
+	flowDir := flows.NewDir(cfg.FlowsDir, reg, log)
+	if err := flowDir.Load(); err != nil {
+		return fmt.Errorf("load flows: %w", err)
+	}
+	go flowDir.Watch(ctx, 2*time.Second)
+
 	jobs := queue.New(db, log, queue.Options{Workers: cfg.Workers})
 	clients := userClients(conn)
-	eng := engine.New(engine.NewRegistry(), db, engine.StaticFlows(nil), engine.Deps{
+	eng := engine.New(reg, db, flowDir, engine.Deps{
 		Immich:    clients,
 		LoadAsset: engine.ImmichAssets(clients),
 	}, log)
@@ -70,7 +78,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           routes(px, api.New(proxy.Prefix+"/api", cfg.Immich, users, conn, log)),
+		Handler:           routes(px, api.New(proxy.Prefix+"/api", cfg.Immich, users, conn, flowDir, log)),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	errc := make(chan error, 1)

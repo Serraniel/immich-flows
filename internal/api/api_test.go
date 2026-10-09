@@ -22,7 +22,7 @@ func TestMe(t *testing.T) {
 	}))
 	defer immich.Close()
 	u, _ := url.Parse(immich.URL)
-	h := New("/_flows/api", u, auth.New(u, nil), nil, slog.New(slog.DiscardHandler))
+	h := New("/_flows/api", u, auth.New(u, nil), nil, nil, slog.New(slog.DiscardHandler))
 
 	req := httptest.NewRequest(http.MethodGet, "/_flows/api/me", nil)
 	req.Header.Set("x-api-key", "k")

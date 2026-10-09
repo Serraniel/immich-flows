@@ -10,6 +10,7 @@ import (
 
 	"github.com/serraniel/immich-flows/internal/auth"
 	"github.com/serraniel/immich-flows/internal/connect"
+	"github.com/serraniel/immich-flows/internal/flows"
 	"github.com/serraniel/immich-flows/internal/immich"
 )
 
@@ -18,18 +19,25 @@ type Server struct {
 	auth      *auth.Authenticator
 	conn      *connect.Manager
 	immichURL *url.URL
+	flows     FlowLister
 	log       *slog.Logger
 }
 
+// FlowLister lists flow files with their validation state.
+type FlowLister interface {
+	Entries() []flows.Entry
+}
+
 // New returns the API handler mounted at prefix (e.g. "/_flows/api").
-func New(prefix string, immichURL *url.URL, a *auth.Authenticator, conn *connect.Manager, log *slog.Logger) http.Handler {
-	s := &Server{auth: a, conn: conn, immichURL: immichURL, log: log}
+func New(prefix string, immichURL *url.URL, a *auth.Authenticator, conn *connect.Manager, fl FlowLister, log *slog.Logger) http.Handler {
+	s := &Server{auth: a, conn: conn, immichURL: immichURL, flows: fl, log: log}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+prefix+"/me", s.me)
 	mux.HandleFunc("GET "+prefix+"/connection", s.connectionStatus)
 	mux.HandleFunc("POST "+prefix+"/connection", s.connect)
 	mux.HandleFunc("DELETE "+prefix+"/connection", s.disconnect)
 	mux.HandleFunc("POST "+prefix+"/tags/move", s.moveTag)
+	mux.Handle("GET "+prefix+"/flows", auth.RequireAdmin(http.HandlerFunc(s.listFlows)))
 	mux.HandleFunc(prefix+"/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, "not found")
 	})
@@ -38,6 +46,14 @@ func New(prefix string, immichURL *url.URL, a *auth.Authenticator, conn *connect
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, auth.FromContext(r.Context()))
+}
+
+func (s *Server) listFlows(w http.ResponseWriter, _ *http.Request) {
+	entries := s.flows.Entries()
+	if entries == nil {
+		entries = []flows.Entry{}
+	}
+	writeJSON(w, http.StatusOK, entries)
 }
 
 func (s *Server) connectionStatus(w http.ResponseWriter, r *http.Request) {

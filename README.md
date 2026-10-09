@@ -26,13 +26,13 @@ services:
     environment:
       IMMICH_FLOWS_UPSTREAM_URL: http://immich-server:2283
     volumes:
-      - ./flows:/data
+      - ./immich-flows:/data   # flows in ./immich-flows/flows/*.yaml
     depends_on:
       - immich-server
     restart: always
 ```
 
-The container runs as UID `65532`. For bind mounts: `mkdir flows && sudo chown 65532:65532 flows`.
+The container runs as UID `65532`. For bind mounts: `mkdir -p immich-flows/flows && sudo chown -R 65532:65532 immich-flows`.
 
 With a converter (immich-flows → upload optimizer → Immich): see [examples/compose.yaml](examples/compose.yaml).
 
@@ -50,6 +50,7 @@ Open `https://<your-immich>/_flows/` and click **Connect**. This creates an Immi
 | `IMMICH_FLOWS_IMMICH_URL` | upstream | Direct Immich URL for API calls |
 | `IMMICH_FLOWS_LISTEN` | `:2283` | Listen address |
 | `IMMICH_FLOWS_DATA_DIR` | `/data` | Database and flow files |
+| `IMMICH_FLOWS_FLOWS_DIR` | `/data/flows` | Flow YAML files, reloaded on change |
 | `IMMICH_FLOWS_WORKERS` | `4` | Concurrent flow jobs |
 | `IMMICH_FLOWS_SECRET` | generated | Encrypts stored Immich API keys. If unset, a key is generated in `/data/secret.key` |
 | `IMMICH_FLOWS_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |

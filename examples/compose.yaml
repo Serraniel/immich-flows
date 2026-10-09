@@ -13,7 +13,7 @@ services:
       IMMICH_FLOWS_UPSTREAM_URL: http://immich-upload-optimizer:2283
       IMMICH_FLOWS_IMMICH_URL: http://immich-server:2283
     volumes:
-      - ./flows:/data
+      - ./immich-flows:/data   # flows in ./immich-flows/flows/*.yaml
     depends_on:
       - immich-upload-optimizer
     restart: always
