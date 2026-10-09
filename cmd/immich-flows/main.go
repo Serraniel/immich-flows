@@ -3,26 +3,19 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
-	"github.com/serraniel/immich-flows/internal/api"
-	"github.com/serraniel/immich-flows/internal/auth"
+	"github.com/serraniel/immich-flows/internal/app"
 	"github.com/serraniel/immich-flows/internal/config"
-	"github.com/serraniel/immich-flows/internal/connect"
 	"github.com/serraniel/immich-flows/internal/flow"
 	"github.com/serraniel/immich-flows/internal/proxy"
-	"github.com/serraniel/immich-flows/internal/queue"
-	"github.com/serraniel/immich-flows/internal/store"
-	"github.com/serraniel/immich-flows/internal/web"
 )
 
 var version = "dev"
@@ -54,69 +47,9 @@ func run() error {
 		return err
 	}
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-
-	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
-		return err
-	}
-	db, err := store.Open(ctx, filepath.Join(cfg.DataDir, "immich-flows.db"))
-	if err != nil {
-		return fmt.Errorf("open database: %w", err)
-	}
-	defer func() { _ = db.Close() }()
-
-	key, err := connect.LoadKey(cfg.Secret, cfg.DataDir)
-	if err != nil {
-		return fmt.Errorf("load secret: %w", err)
-	}
-	conn := connect.New(db, key, cfg.Immich, nil)
-
-	jobs := queue.New(db, log, queue.Options{Workers: cfg.Workers})
-	jobsCtx, stopJobs := context.WithCancel(context.Background())
-	jobsDone := make(chan error, 1)
-	go func() { jobsDone <- jobs.Run(jobsCtx) }()
-	defer func() {
-		stopJobs()
-		if err := <-jobsDone; err != nil {
-			log.Error("job queue", "err", err)
-		}
-	}()
-
-	srv := &http.Server{
-		Addr:              cfg.Listen,
-		Handler:           routes(proxy.New(cfg.Upstream, log), api.New(proxy.Prefix+"/api", cfg.Immich, auth.New(cfg.Immich, nil), conn, log)),
-		ReadHeaderTimeout: 30 * time.Second,
-	}
-
-	errc := make(chan error, 1)
-	go func() {
-		log.Info("starting", "version", version, "listen", cfg.Listen, "upstream", cfg.Upstream.String())
-		errc <- srv.ListenAndServe()
-	}()
-
-	select {
-	case err := <-errc:
-		return err
-	case <-ctx.Done():
-	}
-
-	shutdown, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(shutdown); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return err
-	}
-	return nil
-}
-
-func routes(px, apiHandler http.Handler) http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle(proxy.Prefix+"/", web.Handler(proxy.Prefix))
-	mux.Handle(proxy.Prefix+"/api/", apiHandler)
-	mux.Handle("GET "+proxy.Prefix+"/healthz", px)
-	mux.Handle("/", px)
-	return mux
+	return app.Run(ctx, cfg, log, version)
 }
 
 // healthcheck is used by the Docker HEALTHCHECK; the runtime image has no shell or curl.

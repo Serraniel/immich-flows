@@ -11,13 +11,16 @@ import (
 	"github.com/serraniel/immich-flows/internal/eval"
 	"github.com/serraniel/immich-flows/internal/events"
 	"github.com/serraniel/immich-flows/internal/flow"
-	"github.com/serraniel/immich-flows/internal/immich"
 	"github.com/serraniel/immich-flows/internal/queue"
 )
 
 const (
 	runTimeout = 10 * time.Minute
 	maxOutput  = 64 << 10
+
+	// Immich's metadata extraction overwrites tags set before it ran, so upload runs wait for it.
+	processingSnooze  = 30 * time.Second
+	maxProcessingWait = 24 * time.Hour
 )
 
 // FlowSource provides the current flows.
@@ -26,10 +29,26 @@ type FlowSource interface {
 	Flow(id string) (*flow.Flow, bool)
 }
 
+// StaticFlows is a fixed FlowSource.
+type StaticFlows []*flow.Flow
+
+// Flows implements FlowSource.
+func (s StaticFlows) Flows() []*flow.Flow { return s }
+
+// Flow implements FlowSource.
+func (s StaticFlows) Flow(id string) (*flow.Flow, bool) {
+	for _, f := range s {
+		if f.ID == id {
+			return f, true
+		}
+	}
+	return nil, false
+}
+
 // Deps are external services steps use. Fields may be nil in tests.
 type Deps struct {
 	// Immich returns a client acting as the given user.
-	Immich func(ctx context.Context, userID string) (*immich.ClientWithResponses, error)
+	Immich ClientFunc
 	// LoadAsset returns the asset as exposed to expressions (env.asset).
 	LoadAsset func(ctx context.Context, userID, assetID string) (map[string]any, error)
 }
@@ -111,6 +130,12 @@ func (e *Engine) Execute(ctx context.Context, req RunRequest) error {
 			}
 			asset = a
 		}
+		if req.Event.Type == events.AssetUploaded && !processed(asset) {
+			if e.now().Sub(req.Event.Time) < maxProcessingWait {
+				return queue.Snooze(processingSnooze)
+			}
+			e.log.Warn("asset still not processed by Immich, running anyway", "asset", req.AssetID)
+		}
 		env["asset"] = asset
 	}
 
@@ -134,6 +159,13 @@ func (e *Engine) Execute(ctx context.Context, req RunRequest) error {
 		e.log.Warn("run failed", "flow", f.ID, "run", r.id, "asset", req.AssetID, "err", runErr)
 	}
 	return runErr
+}
+
+// processed reports whether Immich finished metadata extraction: exifInfo.modifyDate is only
+// set by it. Assets without exifInfo (tests, other sources) count as processed.
+func processed(asset map[string]any) bool {
+	exif, ok := asset["exifInfo"].(map[string]any)
+	return !ok || exif["modifyDate"] != nil
 }
 
 type run struct {

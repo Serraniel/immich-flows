@@ -49,6 +49,7 @@ Unknown fields are errors.
 
 - An event with several assets starts one run per flow and asset. Without assets, one run per flow.
 - `trigger.if` is evaluated per run; if false, nothing is recorded.
+- `asset.uploaded` runs start after Immich finished metadata extraction for the asset; tags set earlier would be overwritten by it.
 - Steps run in order. A failing step fails the run unless `continueOnError: true`.
 - Failed runs are retried with backoff (up to 8 attempts), always from the first step: steps must be idempotent. Expression errors are not retried.
 - Every run and step (status, output, error, duration) is stored in the run log.
@@ -75,7 +76,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 
 | Trigger | Payload |
 | --- | --- |
-| `asset.uploaded` | `asset`, `upload.original` (hashes, size), `upload.status` (`created`/`duplicate`) |
+| `asset.uploaded` | `trigger.data.original` (`filename`, `size`, `md5`, `sha1`, `sha256`, `sha512` of the bytes the client sent), `trigger.data.status` (`created`/`duplicate`) |
 | `asset.trashed` / `asset.deleted` / `asset.restored` | `assets` |
 | `duplicates.resolved` | `kept`, `trashed`, tags of all assets before resolution |
 | `tag.assigned` / `tag.removed` | `tag`, `assets` |

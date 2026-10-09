@@ -167,3 +167,20 @@ func TestBackoff(t *testing.T) {
 		}
 	}
 }
+
+func TestSnoozeDoesNotCountAttempts(t *testing.T) {
+	q := New(openDB(t), slog.New(slog.DiscardHandler), fast())
+	var calls atomic.Int32
+	q.Handle("k", func(_ context.Context, j Job) error {
+		if calls.Add(1) <= 5 {
+			return Snooze(time.Millisecond)
+		}
+		if j.Attempt != 1 {
+			t.Errorf("attempt %d after snoozes, want 1", j.Attempt)
+		}
+		return nil
+	})
+	start(t, q)
+	_, _ = q.Enqueue(context.Background(), "k", nil)
+	waitStatus(t, q, "done", 1)
+}
