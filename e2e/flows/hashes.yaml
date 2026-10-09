@@ -1,0 +1,18 @@
+id: e2e-hashes
+trigger:
+  on: asset.uploaded
+  if: 'asset.originalFileName startsWith "HASHED_"'
+steps:
+  - id: original
+    use: hash
+    with: {source: original, algorithms: [md5, sha256]}
+  - id: stored
+    use: hash
+    with: {source: stored, algorithms: [md5, sha1]}
+  - use: tag.assign
+    with:
+      tags:
+        - 'e2e-hashes/MD5/ORIGINAL/{{ steps.original.md5 }}'
+        - 'e2e-hashes/SHA256/ORIGINAL/{{ steps.original.sha256 }}'
+        - 'e2e-hashes/MD5/STORED/{{ steps.stored.md5 }}'
+        - 'e2e-hashes/SHA1/STORED/{{ steps.stored.sha1 }}'

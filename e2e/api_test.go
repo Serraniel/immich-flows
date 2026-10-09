@@ -63,7 +63,7 @@ func TestFlowFiles(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"flow"`
 	}
-	if s := c.json(http.MethodGet, "/_flows/api/flows", nil, &entries); s != http.StatusOK || len(entries) != 3 {
+	if s := c.json(http.MethodGet, "/_flows/api/flows", nil, &entries); s != http.StatusOK || len(entries) != 4 {
 		t.Fatalf("flows: %d %+v", s, entries)
 	}
 	got := map[string]string{}

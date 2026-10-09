@@ -24,6 +24,12 @@ type result struct {
 // runFlow validates and executes a flow for one asset with deps, returning step outputs.
 func runFlow(t *testing.T, src string, asset map[string]any, deps engine.Deps) result {
 	t.Helper()
+	return runFlowEvent(t, src, asset, nil, deps)
+}
+
+// runFlowEvent is runFlow with trigger data.
+func runFlowEvent(t *testing.T, src string, asset, data map[string]any, deps engine.Deps) result {
+	t.Helper()
 	f, err := flow.Parse([]byte(src))
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +56,7 @@ func runFlow(t *testing.T, src string, asset map[string]any, deps engine.Deps) r
 	err = e.Execute(context.Background(), engine.RunRequest{
 		FlowID:  f.ID,
 		AssetID: "11111111-1111-4111-8111-111111111111",
-		Event:   events.Event{Type: f.Trigger.On, UserID: "u1", Time: time.Now()},
+		Event:   events.Event{Type: f.Trigger.On, UserID: "u1", Time: time.Now(), Data: data},
 	})
 	return result{err: err, outputs: outputs(t, db), vars: vars}
 }
