@@ -86,7 +86,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           routes(proxy.New(cfg.Upstream, log), api.New(proxy.Prefix+"/api", auth.New(cfg.Immich, nil), conn, log)),
+		Handler:           routes(proxy.New(cfg.Upstream, log), api.New(proxy.Prefix+"/api", cfg.Immich, auth.New(cfg.Immich, nil), conn, log)),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 

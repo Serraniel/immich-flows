@@ -58,6 +58,7 @@ Open `https://<your-immich>/_flows/` and click **Connect**. This creates an Immi
 
 - [Architecture](docs/architecture.md)
 - [Flows](docs/flows.md)
+- [Tag tools](docs/tags.md)
 - [Requirements](docs/requirements.md)
 
 ## License

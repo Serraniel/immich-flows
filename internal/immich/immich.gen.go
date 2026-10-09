@@ -20,19 +20,19 @@ import (
 
 // Defines values for AlbumUserRole.
 const (
-	Editor AlbumUserRole = "editor"
-	Owner  AlbumUserRole = "owner"
-	Viewer AlbumUserRole = "viewer"
+	AlbumUserRoleEditor AlbumUserRole = "editor"
+	AlbumUserRoleOwner  AlbumUserRole = "owner"
+	AlbumUserRoleViewer AlbumUserRole = "viewer"
 )
 
 // Valid indicates whether the value is a known member of the AlbumUserRole enum.
 func (e AlbumUserRole) Valid() bool {
 	switch e {
-	case Editor:
+	case AlbumUserRoleEditor:
 		return true
-	case Owner:
+	case AlbumUserRoleOwner:
 		return true
-	case Viewer:
+	case AlbumUserRoleViewer:
 		return true
 	default:
 		return false
@@ -663,6 +663,75 @@ func (e PersonUserRole) Valid() bool {
 	case Read:
 		return true
 	case Write:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for QueueName.
+const (
+	QueueNameBackgroundTask           QueueName = "backgroundTask"
+	QueueNameBackupDatabase           QueueName = "backupDatabase"
+	QueueNameDuplicateDetection       QueueName = "duplicateDetection"
+	QueueNameEditor                   QueueName = "editor"
+	QueueNameFaceDetection            QueueName = "faceDetection"
+	QueueNameFacialRecognition        QueueName = "facialRecognition"
+	QueueNameIntegrityCheck           QueueName = "integrityCheck"
+	QueueNameLibrary                  QueueName = "library"
+	QueueNameMetadataExtraction       QueueName = "metadataExtraction"
+	QueueNameMigration                QueueName = "migration"
+	QueueNameNotifications            QueueName = "notifications"
+	QueueNameOcr                      QueueName = "ocr"
+	QueueNameSearch                   QueueName = "search"
+	QueueNameSidecar                  QueueName = "sidecar"
+	QueueNameSmartSearch              QueueName = "smartSearch"
+	QueueNameStorageTemplateMigration QueueName = "storageTemplateMigration"
+	QueueNameThumbnailGeneration      QueueName = "thumbnailGeneration"
+	QueueNameVideoConversion          QueueName = "videoConversion"
+	QueueNameWorkflow                 QueueName = "workflow"
+)
+
+// Valid indicates whether the value is a known member of the QueueName enum.
+func (e QueueName) Valid() bool {
+	switch e {
+	case QueueNameBackgroundTask:
+		return true
+	case QueueNameBackupDatabase:
+		return true
+	case QueueNameDuplicateDetection:
+		return true
+	case QueueNameEditor:
+		return true
+	case QueueNameFaceDetection:
+		return true
+	case QueueNameFacialRecognition:
+		return true
+	case QueueNameIntegrityCheck:
+		return true
+	case QueueNameLibrary:
+		return true
+	case QueueNameMetadataExtraction:
+		return true
+	case QueueNameMigration:
+		return true
+	case QueueNameNotifications:
+		return true
+	case QueueNameOcr:
+		return true
+	case QueueNameSearch:
+		return true
+	case QueueNameSidecar:
+		return true
+	case QueueNameSmartSearch:
+		return true
+	case QueueNameStorageTemplateMigration:
+		return true
+	case QueueNameThumbnailGeneration:
+		return true
+	case QueueNameVideoConversion:
+		return true
+	case QueueNameWorkflow:
 		return true
 	default:
 		return false
@@ -1497,6 +1566,40 @@ type PersonResponseDto struct {
 // PersonUserRole Levels of access for managing people resources on behalf of another user.
 type PersonUserRole string
 
+// QueueName Queue name
+type QueueName string
+
+// QueueResponseDto defines model for QueueResponseDto.
+type QueueResponseDto struct {
+	// IsPaused Whether the queue is paused
+	IsPaused bool `json:"isPaused"`
+
+	// Name Queue name
+	Name       QueueName          `json:"name"`
+	Statistics QueueStatisticsDto `json:"statistics"`
+}
+
+// QueueStatisticsDto defines model for QueueStatisticsDto.
+type QueueStatisticsDto struct {
+	// Active Number of active jobs
+	Active int `json:"active"`
+
+	// Completed Number of completed jobs
+	Completed int `json:"completed"`
+
+	// Delayed Number of delayed jobs
+	Delayed int `json:"delayed"`
+
+	// Failed Number of failed jobs
+	Failed int `json:"failed"`
+
+	// Paused Number of paused jobs
+	Paused int `json:"paused"`
+
+	// Waiting Number of waiting jobs
+	Waiting int `json:"waiting"`
+}
+
 // SearchAlbumResponseDto defines model for SearchAlbumResponseDto.
 type SearchAlbumResponseDto struct {
 	// Count Number of albums in this page
@@ -2042,6 +2145,13 @@ type ClientInterface interface {
 	// Corresponds with GET /duplicates (the `GetAssetDuplicates` operationId).
 	GetAssetDuplicates(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetQueues List all queues
+	//
+	// Retrieves a list of queues.
+	//
+	// Corresponds with GET /queues (the `GetQueues` operationId).
+	GetQueues(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// SearchAssetsWithBody Search assets by metadata
 	//
 	// Search for assets based on various metadata criteria.
@@ -2359,6 +2469,23 @@ func (c *Client) DownloadAsset(ctx context.Context, id openapi_types.UUID, param
 // Corresponds with GET /duplicates (the `GetAssetDuplicates` operationId).
 func (c *Client) GetAssetDuplicates(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAssetDuplicatesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetQueues List all queues
+//
+// Retrieves a list of queues.
+//
+// Corresponds with GET /queues (the `GetQueues` operationId).
+func (c *Client) GetQueues(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetQueuesRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -3062,6 +3189,33 @@ func NewGetAssetDuplicatesRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewGetQueuesRequest constructs an http.Request for the GetQueues method
+func NewGetQueuesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/queues")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSearchAssetsRequest calls the generic SearchAssets builder with application/json body
 func NewSearchAssetsRequest(server string, params *SearchAssetsParams, body SearchAssetsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -3676,6 +3830,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /duplicates (the `GetAssetDuplicates` operationId).
 	GetAssetDuplicatesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAssetDuplicatesResponse, error)
 
+	// GetQueuesWithResponse List all queues
+	//
+	// Retrieves a list of queues.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /queues (the `GetQueues` operationId).
+	GetQueuesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetQueuesResponse, error)
+
 	// SearchAssetsWithBodyWithResponse Search assets by metadata
 	//
 	// Search for assets based on various metadata criteria.
@@ -4119,6 +4282,47 @@ func (r GetAssetDuplicatesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetAssetDuplicatesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetQueuesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]QueueResponseDto
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetQueuesResponse) GetJSON200() *[]QueueResponseDto {
+	return r.JSON200
+}
+
+// GetBody returns the raw response body bytes
+func (r GetQueuesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetQueuesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetQueuesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetQueuesResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -4745,6 +4949,21 @@ func (c *ClientWithResponses) GetAssetDuplicatesWithResponse(ctx context.Context
 	return ParseGetAssetDuplicatesResponse(rsp)
 }
 
+// GetQueuesWithResponse List all queues
+//
+// Retrieves a list of queues.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /queues (the `GetQueues` operationId).
+func (c *ClientWithResponses) GetQueuesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetQueuesResponse, error) {
+	rsp, err := c.GetQueues(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetQueuesResponse(rsp)
+}
+
 // SearchAssetsWithBodyWithResponse Search assets by metadata
 //
 // Search for assets based on various metadata criteria.
@@ -5185,6 +5404,32 @@ func ParseGetAssetDuplicatesResponse(rsp *http.Response) (*GetAssetDuplicatesRes
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []DuplicateResponseDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetQueuesResponse parses an HTTP response from a GetQueuesWithResponse call
+func ParseGetQueuesResponse(rsp *http.Response) (*GetQueuesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetQueuesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []QueueResponseDto
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
