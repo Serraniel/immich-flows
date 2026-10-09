@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -28,6 +29,12 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      # Anonymous ghcr.io pulls from runners hit toomanyrequests.
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pull images
         working-directory: e2e
         # Registries rate-limit bursts (toomanyrequests).
