@@ -8,7 +8,7 @@ require (
 	github.com/expr-lang/expr v1.17.8
 	github.com/invopop/jsonschema v0.14.0
 	github.com/oapi-codegen/runtime v1.7.0
-	go.yaml.in/yaml/v3 v3.0.4
+	go.yaml.in/yaml/v3 v3.0.5
 	modernc.org/sqlite v1.60.1
 )
 
