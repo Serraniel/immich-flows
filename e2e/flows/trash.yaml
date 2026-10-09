@@ -1,0 +1,7 @@
+id: e2e-trash
+trigger:
+  on: asset.trashed
+  if: 'asset.originalFileName startsWith "TRASH_"'
+steps:
+  - use: tag.assign
+    with: {tags: e2e-lifecycle/trashed}

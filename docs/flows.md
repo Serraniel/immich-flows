@@ -62,6 +62,8 @@ Invalid files are logged and listed with their error at `GET /_flows/api/flows` 
 
 Flows run for all users who connected immich-flows (see README).
 
+Hooks only query Immich for extra data (snapshots, trash listings) if an enabled flow uses that trigger.
+
 ## Expressions
 
 `if:` fields and `{{ }}` templates use [expr](https://expr-lang.org/docs/language-definition). Available: `trigger`, `asset`, `steps.<id>`, `vars`, `env` (allowlisted).
@@ -81,7 +83,9 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | Trigger | Payload |
 | --- | --- |
 | `asset.uploaded` | `trigger.data.original` (`filename`, `size`, `md5`, `sha1`, `sha256`, `sha512` of the bytes the client sent), `trigger.data.status` (`created`/`duplicate`) |
-| `asset.trashed` / `asset.deleted` / `asset.restored` | `assets` |
+| `asset.trashed` | trashed via `DELETE /api/assets` |
+| `asset.deleted` | permanently deleted (`force`, or emptied trash). `asset` comes from a snapshot taken before deletion (max 500 assets), otherwise only `asset.id` |
+| `asset.restored` | restored from trash |
 | `duplicates.resolved` | `kept`, `trashed`, tags of all assets before resolution |
 | `tag.assigned` / `tag.removed` | `tag`, `assets` |
 | `manual` | `assets` selected in UI |

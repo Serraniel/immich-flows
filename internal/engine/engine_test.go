@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -218,5 +219,35 @@ func TestUploadWaitsForImmichProcessing(t *testing.T) {
 	req.Event.Time = time.Now().Add(-25 * time.Hour)
 	if err := h.e.Execute(context.Background(), req); err != nil || len(h.calls) != 2 {
 		t.Fatalf("old event must run anyway: %v calls=%d", err, len(h.calls))
+	}
+}
+
+func TestSnapshotAndDeletedAssets(t *testing.T) {
+	h := newHarness(t,
+		parse(t, "id: d\ntrigger: {on: asset.deleted}\nsteps: [{use: record, with: {name: '{{ asset?.originalFileName ?? \"?\" }}'}}]\n"),
+		parse(t, "id: r\ntrigger: {on: asset.restored}\nsteps: [{use: record, with: {name: '{{ asset.originalFileName }}'}}]\n"),
+	)
+	loads := 0
+	h.e.deps.LoadAsset = func(_ context.Context, _, id string) (map[string]any, error) {
+		loads++
+		return map[string]any{"id": id, "originalFileName": "loaded.jpg"}, nil
+	}
+	snap := map[string]any{"assets": map[string]any{"a": map[string]any{"id": "a", "originalFileName": "snap.jpg"}}}
+
+	for _, req := range []RunRequest{
+		{FlowID: "d", AssetID: "a", Event: events.Event{Type: events.AssetDeleted, Data: snap}},
+		{FlowID: "d", AssetID: "b", Event: events.Event{Type: events.AssetDeleted}},
+		{FlowID: "r", AssetID: "b", Event: events.Event{Type: events.AssetRestored}},
+	} {
+		if err := h.e.Execute(context.Background(), req); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := []any{h.calls[0]["name"], h.calls[1]["name"], h.calls[2]["name"]}
+	if fmt.Sprint(got) != "[snap.jpg ? loaded.jpg]" || loads != 1 {
+		t.Errorf("names %v loads %d", got, loads)
+	}
+	if !h.e.Wants(events.AssetDeleted) || h.e.Wants(events.TagAssigned) {
+		t.Error("Wants")
 	}
 }
