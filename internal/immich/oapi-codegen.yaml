@@ -1,0 +1,26 @@
+package: immich
+output: immich.gen.go
+generate:
+  models: true
+  client: true
+output-options:
+  include-operation-ids:
+    - getMyUser
+    - getServerVersion
+    - createApiKey
+    - deleteApiKey
+    - getAssetInfo
+    - downloadAsset
+    - getAssetMetadata
+    - updateAssetMetadata
+    - searchAssets
+    - getAllTags
+    - getTagById
+    - createTag
+    - upsertTags
+    - updateTag
+    - deleteTag
+    - tagAssets
+    - untagAssets
+    - bulkTagAssets
+    - getAssetDuplicates
