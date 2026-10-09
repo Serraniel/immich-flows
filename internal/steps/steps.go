@@ -64,3 +64,24 @@ func requireKeys(with map[string]any, keys ...string) error {
 	}
 	return nil
 }
+
+// strs returns with[key] as a list of strings. A single string is a one-element list.
+func strs(with map[string]any, key string) ([]string, error) {
+	switch v := with[key].(type) {
+	case nil:
+		return nil, nil
+	case string:
+		return []string{v}, nil
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, x := range v {
+			if x == nil {
+				continue
+			}
+			out = append(out, fmt.Sprint(x))
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("with.%s must be a string or a list", key)
+	}
+}

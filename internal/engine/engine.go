@@ -19,8 +19,11 @@ const (
 	maxOutput  = 64 << 10
 
 	// Immich's metadata extraction overwrites tags set before it ran, so upload runs wait for it.
-	processingSnooze  = 30 * time.Second
-	maxProcessingWait = 24 * time.Hour
+	// The re-check delay grows with the event's age: quick for single uploads, gentle on Immich
+	// during large imports.
+	minProcessingSnooze = 2 * time.Second
+	maxProcessingSnooze = 5 * time.Minute
+	maxProcessingWait   = 24 * time.Hour
 )
 
 // FlowSource provides the current flows.
@@ -131,8 +134,8 @@ func (e *Engine) Execute(ctx context.Context, req RunRequest) error {
 			asset = a
 		}
 		if req.Event.Type == events.AssetUploaded && !processed(asset) {
-			if e.now().Sub(req.Event.Time) < maxProcessingWait {
-				return queue.Snooze(processingSnooze)
+			if age := e.now().Sub(req.Event.Time); age < maxProcessingWait {
+				return queue.Snooze(min(max(age/2, minProcessingSnooze), maxProcessingSnooze))
 			}
 			e.log.Warn("asset still not processed by Immich, running anyway", "asset", req.AssetID)
 		}

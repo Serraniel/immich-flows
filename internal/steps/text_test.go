@@ -28,7 +28,7 @@ steps:
       tagValues: '{{ steps.tags.items | map("service-a/" + #) }}'
   - use: capture
 `
-	r := runFlow(t, src, map[string]any{"baseName": "SERVICE-A_123_cat_ dog__x"}, nil, engine.Deps{})
+	r := runFlow(t, src, map[string]any{"baseName": "SERVICE-A_123_cat_ dog__x"}, engine.Deps{})
 	if r.err != nil {
 		t.Fatal(r.err)
 	}
@@ -50,7 +50,7 @@ steps:
   - {id: parse, use: regex, with: {input: 'HASH.jpg', pattern: '^SERVICE-A_', caseInsensitive: true}}
   - {id: tags, use: split, if: steps.parse.matched, with: {input: x}}
 `
-	r := runFlow(t, src, map[string]any{}, nil, engine.Deps{})
+	r := runFlow(t, src, map[string]any{}, engine.Deps{})
 	if r.err != nil || r.outputs["parse"]["matched"] != false || r.outputs["tags"] != nil {
 		t.Errorf("err=%v outputs=%v", r.err, r.outputs)
 	}
@@ -62,7 +62,7 @@ trigger: {on: manual}
 steps:
   - {id: s, use: split, with: {input: 'a, b,,c', separator: ',', trim: false, skipEmpty: false}}
 `
-	r := runFlow(t, src, map[string]any{}, nil, engine.Deps{})
+	r := runFlow(t, src, map[string]any{}, engine.Deps{})
 	if fmt.Sprintf("%q", r.outputs["s"]["items"]) != `["a" " b" "" "c"]` {
 		t.Errorf("%v", r.outputs["s"])
 	}

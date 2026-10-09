@@ -1,4 +1,5 @@
-package tags
+// Package immichtest provides an in-memory fake of the Immich tag, asset and search API for tests.
+package immichtest
 
 import (
 	"encoding/json"
@@ -9,35 +10,49 @@ import (
 	"sync"
 )
 
-// fakeImmich implements the tag and search endpoints with Immich's semantics:
+// Fake implements the tag, asset and search endpoints with Immich's semantics:
 // search by tag includes descendants, deleting a tag deletes its descendants.
-type fakeImmich struct {
+type Fake struct {
 	mu     sync.Mutex
 	n      int
-	tags   map[string]*fakeTag // id -> tag
+	tags   map[string]*Tag // id -> tag
 	assets map[string]map[string]bool
-	pages  int
-	// resurrect re-adds a deleted tag to its assets once, like Immich's sidecar re-import race.
-	resurrect bool
-	// queuesForbidden makes GET /queues return 403 (non-admin caller).
-	queuesForbidden bool
-	deletes         int
+	// Pages counts search requests.
+	Pages int
+	// Resurrect re-adds a deleted tag to its assets once, like Immich's sidecar re-import race.
+	Resurrect bool
+	// QueuesForbidden makes GET /queues return 403 (non-admin caller).
+	QueuesForbidden bool
+	// Deletes counts tag deletions.
+	Deletes int
+	// Requests counts requests by "METHOD /path".
+	Requests map[string]int
+	// Originals holds file contents served by GET /assets/{id}/original.
+	Originals map[string][]byte
+	// Info holds extra asset fields returned by GET /assets/{id} (e.g. checksum, exifInfo).
+	Info map[string]map[string]any
+	// Metadata holds asset metadata written via PUT /assets/{id}/metadata.
+	Metadata map[string]map[string]any
 }
 
-type fakeTag struct {
+// Tag is a fake tag.
+type Tag struct {
 	ID, Value, Color string
 }
 
-func newFake() *fakeImmich {
-	return &fakeImmich{tags: map[string]*fakeTag{}, assets: map[string]map[string]bool{}}
+// New returns an empty Fake.
+func New() *Fake {
+	return &Fake{tags: map[string]*Tag{}, assets: map[string]map[string]bool{}, Requests: map[string]int{},
+		Originals: map[string][]byte{}, Info: map[string]map[string]any{}, Metadata: map[string]map[string]any{}}
 }
 
-func (f *fakeImmich) id() string {
+func (f *Fake) id() string {
 	f.n++
 	return fmt.Sprintf("00000000-0000-4000-8000-%012d", f.n)
 }
 
-func (f *fakeImmich) byValue(v string) *fakeTag {
+// ByValue returns the tag with value v.
+func (f *Fake) ByValue(v string) *Tag {
 	for _, t := range f.tags {
 		if t.Value == v {
 			return t
@@ -46,21 +61,21 @@ func (f *fakeImmich) byValue(v string) *fakeTag {
 	return nil
 }
 
-func (f *fakeImmich) upsert(v string) *fakeTag {
+func (f *Fake) upsert(v string) *Tag {
 	parts := strings.Split(v, "/")
-	var t *fakeTag
+	var t *Tag
 	for i := range parts {
 		p := strings.Join(parts[:i+1], "/")
-		if t = f.byValue(p); t == nil {
-			t = &fakeTag{ID: f.id(), Value: p}
+		if t = f.ByValue(p); t == nil {
+			t = &Tag{ID: f.id(), Value: p}
 			f.tags[t.ID] = t
 		}
 	}
 	return t
 }
 
-// tag creates the tag (with parents) and assigns it to the asset.
-func (f *fakeImmich) tag(asset, value string) {
+// Tag creates the tag (with parents) and assigns it to the asset.
+func (f *Fake) Tag(asset, value string) {
 	t := f.upsert(value)
 	if f.assets[asset] == nil {
 		f.assets[asset] = map[string]bool{}
@@ -68,8 +83,8 @@ func (f *fakeImmich) tag(asset, value string) {
 	f.assets[asset][t.ID] = true
 }
 
-// state returns "asset: tags" lines and all tag values, sorted.
-func (f *fakeImmich) state() (string, string) {
+// State returns "asset: tags" lines and all tag values, sorted.
+func (f *Fake) State() (string, string) {
 	var lines, values []string
 	for a, ts := range f.assets {
 		var vs []string
@@ -87,12 +102,12 @@ func (f *fakeImmich) state() (string, string) {
 	return strings.Join(lines, "; "), strings.Join(values, ",")
 }
 
-func (f *fakeImmich) json(w http.ResponseWriter, v any) {
+func (f *Fake) json(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-func (f *fakeImmich) tagDTO(t *fakeTag) map[string]any {
+func (f *Fake) tagDTO(t *Tag) map[string]any {
 	parts := strings.Split(t.Value, "/")
 	m := map[string]any{"id": t.ID, "value": t.Value, "name": parts[len(parts)-1], "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z"}
 	if t.Color != "" {
@@ -101,11 +116,51 @@ func (f *fakeImmich) tagDTO(t *fakeTag) map[string]any {
 	return m
 }
 
-func (f *fakeImmich) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// ServeHTTP implements http.Handler.
+func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	path := strings.TrimPrefix(r.URL.Path, "/api")
+	f.Requests[r.Method+" "+path]++
 	switch {
+	case r.Method == http.MethodDelete && strings.HasPrefix(path, "/tags/") && strings.HasSuffix(path, "/assets"):
+		id := strings.TrimSuffix(strings.TrimPrefix(path, "/tags/"), "/assets")
+		var body struct {
+			IDs []string `json:"ids"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		out := []any{}
+		for _, a := range body.IDs {
+			delete(f.assets[a], id)
+			out = append(out, map[string]any{"id": a, "success": true})
+		}
+		f.json(w, out)
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/assets/") && strings.HasSuffix(path, "/original"):
+		data, ok := f.Originals[strings.TrimSuffix(strings.TrimPrefix(path, "/assets/"), "/original")]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		_, _ = w.Write(data)
+	case r.Method == http.MethodPut && strings.HasPrefix(path, "/assets/") && strings.HasSuffix(path, "/metadata"):
+		a := strings.TrimSuffix(strings.TrimPrefix(path, "/assets/"), "/metadata")
+		var body struct {
+			Items []struct {
+				Key   string         `json:"key"`
+				Value map[string]any `json:"value"`
+			} `json:"items"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if f.Metadata[a] == nil {
+			f.Metadata[a] = map[string]any{}
+		}
+		out := []any{}
+		for _, it := range body.Items {
+			f.Metadata[a][it.Key] = it.Value
+			out = append(out, map[string]any{"key": it.Key, "value": it.Value, "updatedAt": "2026-01-01T00:00:00Z"})
+		}
+		f.json(w, out)
 	case r.Method == http.MethodGet && path == "/tags":
 		out := []any{}
 		for _, t := range f.tags {
@@ -142,13 +197,13 @@ func (f *fakeImmich) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		t.Color = body.Color
 		f.json(w, f.tagDTO(t))
 	case r.Method == http.MethodGet && path == "/queues":
-		if f.queuesForbidden {
+		if f.QueuesForbidden {
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 		f.json(w, []any{map[string]any{"name": "sidecar", "isPaused": false, "statistics": map[string]int{}}})
 	case r.Method == http.MethodDelete && strings.HasPrefix(path, "/tags/"):
-		f.deletes++
+		f.Deletes++
 		root := f.tags[strings.TrimPrefix(path, "/tags/")]
 		var had []string
 		for a, ts := range f.assets {
@@ -157,10 +212,10 @@ func (f *fakeImmich) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		defer func() {
-			if f.resurrect {
-				f.resurrect = false
+			if f.Resurrect {
+				f.Resurrect = false
 				for _, a := range had {
-					f.tag(a, root.Value)
+					f.Tag(a, root.Value)
 				}
 			}
 		}()
@@ -179,7 +234,7 @@ func (f *fakeImmich) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Page, Size int
 		}
 		_ = json.NewDecoder(r.Body).Decode(&body)
-		f.pages++
+		f.Pages++
 		root := f.tags[body.TagIDs[0]]
 		var ids []string
 		for a, ts := range f.assets {
@@ -210,7 +265,11 @@ func (f *fakeImmich) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for id := range f.assets[a] {
 			tags = append(tags, f.tagDTO(f.tags[id]))
 		}
-		f.json(w, map[string]any{"id": a, "tags": tags})
+		m := map[string]any{"id": a, "tags": tags}
+		for k, v := range f.Info[a] {
+			m[k] = v
+		}
+		f.json(w, m)
 	default:
 		http.Error(w, "not implemented: "+r.Method+" "+path, http.StatusNotImplemented)
 	}
