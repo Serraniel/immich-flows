@@ -8,24 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/serraniel/immich-flows/internal/events"
 	"github.com/serraniel/immich-flows/internal/flow"
 	"github.com/serraniel/immich-flows/internal/queue"
 	"github.com/serraniel/immich-flows/internal/store"
 )
-
-type flows []*flow.Flow
-
-func (f flows) Flows() []*flow.Flow { return f }
-func (f flows) Flow(id string) (*flow.Flow, bool) {
-	for _, x := range f {
-		if x.ID == id {
-			return x, true
-		}
-	}
-	return nil, false
-}
 
 func parse(t *testing.T, src string) *flow.Flow {
 	t.Helper()
@@ -63,7 +52,7 @@ func newHarness(t *testing.T, fs ...*flow.Flow) *harness {
 			t.Fatal(err)
 		}
 	}
-	h.e = New(reg, db, flows(fs), Deps{
+	h.e = New(reg, db, StaticFlows(fs), Deps{
 		LoadAsset: func(_ context.Context, _, id string) (map[string]any, error) {
 			return map[string]any{"id": id, "originalFileName": "SERVICE-A_1_cat_dog.jpg"}, nil
 		},
@@ -206,5 +195,28 @@ steps:
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("missing %q in\n%v", want, err)
 		}
+	}
+}
+
+func TestUploadWaitsForImmichProcessing(t *testing.T) {
+	h := newHarness(t, parse(t, "id: f\ntrigger: {on: asset.uploaded}\nsteps: [{use: record}]\n"))
+	exif := map[string]any{"modifyDate": nil}
+	h.e.deps.LoadAsset = func(_ context.Context, _, id string) (map[string]any, error) {
+		return map[string]any{"id": id, "exifInfo": exif}, nil
+	}
+	req := RunRequest{FlowID: "f", AssetID: "a", Event: events.Event{Type: events.AssetUploaded, Time: time.Now()}}
+
+	if err := h.e.Execute(context.Background(), req); err == nil || len(h.calls) != 0 {
+		t.Fatalf("want snooze before processing, got %v calls=%d", err, len(h.calls))
+	}
+	exif["modifyDate"] = "2026-01-01T00:00:00Z"
+	if err := h.e.Execute(context.Background(), req); err != nil || len(h.calls) != 1 {
+		t.Fatalf("after processing: %v calls=%d", err, len(h.calls))
+	}
+
+	exif["modifyDate"] = nil
+	req.Event.Time = time.Now().Add(-25 * time.Hour)
+	if err := h.e.Execute(context.Background(), req); err != nil || len(h.calls) != 2 {
+		t.Fatalf("old event must run anyway: %v calls=%d", err, len(h.calls))
 	}
 }

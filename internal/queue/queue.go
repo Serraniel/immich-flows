@@ -33,6 +33,14 @@ func (p permanent) Unwrap() error { return p.error }
 // Permanent marks err as not retryable.
 func Permanent(err error) error { return permanent{err} }
 
+type snooze struct{ after time.Duration }
+
+func (s snooze) Error() string { return fmt.Sprintf("snoozed for %s", s.after) }
+
+// Snooze reschedules the job after d without counting an attempt. Use it to wait for
+// something that is not a failure, e.g. Immich still processing an asset.
+func Snooze(d time.Duration) error { return snooze{d} }
+
 // Options configures a Queue.
 type Options struct {
 	Workers     int           // default 4
@@ -181,7 +189,11 @@ func (q *Queue) process(ctx context.Context, j Job) {
 	wctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	now := q.now()
+	var sn snooze
 	switch {
+	case errors.As(err, &sn):
+		_, err = q.db.ExecContext(wctx, `UPDATE jobs SET status = 'pending', attempts = attempts - 1, run_at = ?, updated_at = ? WHERE id = ?`,
+			now.Add(sn.after).UnixMilli(), now.UnixMilli(), j.ID)
 	case err == nil:
 		_, err = q.db.ExecContext(wctx, `UPDATE jobs SET status = 'done', last_error = NULL, updated_at = ? WHERE id = ?`, now.UnixMilli(), j.ID)
 	case IsPermanent(err) || j.Attempt >= j.maxAttempts:
