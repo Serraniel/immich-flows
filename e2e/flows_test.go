@@ -106,3 +106,30 @@ func TestFlowTrashAndRestore(t *testing.T) {
 	}
 	c.waitTags(up.ID, []string{"e2e-lifecycle/restored", "e2e-lifecycle/trashed"})
 }
+
+func TestFlowDuplicatesResolved(t *testing.T) {
+	c := adminClient(t)
+	c.connect()
+	keep := c.upload("dup-keep.jpg", randomJPEG(t)).ID
+	trash := c.upload("dup-trash.jpg", randomJPEG(t)).ID
+	c.waitIdle()
+	c.tagAsset(keep, "e2e-dup/a")
+	c.tagAsset(trash, "e2e-dup/b")
+
+	// Duplicate detection needs ML; mark the pair as duplicates directly.
+	group := fmt.Sprintf("%08x-0000-4000-8000-000000000000", time.Now().Unix()&0xffffffff)
+	if s := c.json(http.MethodPut, "/api/assets", map[string]any{"ids": []string{keep, trash}, "duplicateId": group}, nil); s != http.StatusNoContent {
+		t.Fatalf("mark duplicates: %d", s)
+	}
+	c.waitIdle()
+
+	var res []struct {
+		Success bool `json:"success"`
+	}
+	body := map[string]any{"groups": []map[string]any{{"duplicateId": group, "keepAssetIds": []string{keep}, "trashAssetIds": []string{trash}}}}
+	if s := c.json(http.MethodPost, "/api/duplicates/resolve", body, &res); s != http.StatusOK || len(res) != 1 || !res[0].Success {
+		t.Fatalf("resolve: %d %+v", s, res)
+	}
+	// Immich merges the trashed asset's tags itself; the flow adds its own tag.
+	c.waitTags(keep, []string{"e2e-dup/a", "e2e-dup/b", "e2e-dup/resolved-1"})
+}

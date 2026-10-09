@@ -36,6 +36,7 @@ func (f fakeUsers) Authenticate(*http.Request) (*auth.User, error) {
 type recorder struct {
 	mu     sync.Mutex
 	events []events.Event
+	next   int
 	got    chan struct{}
 }
 
@@ -58,7 +59,8 @@ func (r *recorder) wait(t *testing.T) events.Event {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.events[len(r.events)-1]
+	r.next++
+	return r.events[r.next-1]
 }
 
 func (r *recorder) none(t *testing.T) {
