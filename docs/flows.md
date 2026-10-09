@@ -87,7 +87,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | `asset.deleted` | permanently deleted (`force`, or emptied trash). `asset` comes from a snapshot taken before deletion (max 500 assets), otherwise only `asset.id` |
 | `asset.restored` | restored from trash |
 | `duplicates.resolved` | one run per kept asset. `trigger.data`: `duplicateId`, `kept`, `trashed` (asset IDs), `assets` (snapshots before resolution), `tags` (asset ID → tag values before resolution). Trashed assets also emit `asset.trashed` |
-| `tag.assigned` / `tag.removed` | `tag`, `assets` |
+| `tag.assigned` / `tag.removed` | user changed tags through Immich. One event per tag, one run per asset. `trigger.data.tag`: `id`, `value`, `name`. Tag changes made by flows do not trigger these (no loops) |
 | `manual` | `assets` selected in UI |
 | `schedule` (low priority) | cron |
 

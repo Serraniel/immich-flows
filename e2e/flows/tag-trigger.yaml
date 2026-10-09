@@ -1,0 +1,8 @@
+id: e2e-tag-trigger
+trigger:
+  on: tag.assigned
+  if: 'trigger.data.tag.value startsWith "e2e-trigger/"'
+steps:
+  - use: tag.assign
+    with:
+      tags: 'e2e-triggered/{{ trigger.data.tag.name }}'
