@@ -5,9 +5,11 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/serraniel/immich-flows/internal/auth"
 	"github.com/serraniel/immich-flows/internal/events"
+	"github.com/serraniel/immich-flows/internal/immich"
 )
 
 // Users resolves the Immich user behind a request.
@@ -23,6 +25,18 @@ type Deps struct {
 	Users   Users
 	Publish Publisher
 	Log     *slog.Logger
+	// Immich is the direct Immich URL, used to read state with the caller's credentials.
+	Immich *url.URL
+	// Wants reports whether an enabled flow listens for the event type. Hooks skip extra
+	// requests to Immich (snapshots, listings) when nothing listens.
+	Wants func(eventType string) bool
+}
+
+func (d Deps) wants(eventType string) bool { return d.Wants == nil || d.Wants(eventType) }
+
+// client returns an Immich client acting with the credentials of the proxied request.
+func (d Deps) client(r *http.Request) (*immich.ClientWithResponses, error) {
+	return immich.New(d.Immich, immich.Forward(r), nil)
 }
 
 func (d Deps) publish(r *http.Request, ev events.Event) {

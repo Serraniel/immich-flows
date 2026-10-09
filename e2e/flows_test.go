@@ -89,3 +89,20 @@ func TestFlowHashTags(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 	}
 }
+
+func TestFlowTrashAndRestore(t *testing.T) {
+	c := adminClient(t)
+	c.connect()
+	up := c.upload("TRASH_x.jpg", randomJPEG(t))
+	c.waitIdle()
+
+	if s := c.json(http.MethodDelete, "/api/assets", map[string]any{"ids": []string{up.ID}}, nil); s != http.StatusNoContent {
+		t.Fatalf("trash: %d", s)
+	}
+	c.waitTags(up.ID, []string{"e2e-lifecycle/trashed"})
+
+	if s := c.json(http.MethodPost, "/api/trash/restore/assets", map[string]any{"ids": []string{up.ID}}, nil); s != http.StatusOK {
+		t.Fatalf("restore: %d", s)
+	}
+	c.waitTags(up.ID, []string{"e2e-lifecycle/restored", "e2e-lifecycle/trashed"})
+}

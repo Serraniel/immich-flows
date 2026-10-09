@@ -65,8 +65,10 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 		Users:   users,
 		Publish: func(ctx context.Context, ev events.Event) error { return engine.Publish(ctx, jobs, ev) },
 		Log:     log,
+		Immich:  cfg.Immich,
+		Wants:   eng.Wants,
 	}
-	px := proxy.New(cfg.Upstream, log, hooks.Upload(hookDeps))
+	px := proxy.New(cfg.Upstream, log, append([]proxy.Hook{hooks.Upload(hookDeps)}, hooks.Trash(hookDeps)...)...)
 
 	jobsCtx, stopJobs := context.WithCancel(context.WithoutCancel(ctx))
 	jobsDone := make(chan error, 1)

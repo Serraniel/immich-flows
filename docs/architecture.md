@@ -38,6 +38,8 @@ immich-server ── native workflow step "immich-flows#emit" (WASM) ── HTTP
 | `duplicates.resolved` | `POST /api/duplicates/resolve` |
 | `tag.assigned`, `tag.removed` | `PUT/DELETE /api/tags/:id/assets`, `PUT /api/tags/assets` |
 
+If Immich's trash is disabled, `DELETE /api/assets` deletes permanently but is reported as `asset.trashed`.
+
 Immich ≥ 2.7 already merges tags of trashed duplicates into the kept asset when exactly one is kept. `duplicates.resolved` covers the remaining cases and custom logic.
 
 ## Stack

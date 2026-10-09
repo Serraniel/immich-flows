@@ -33,6 +33,8 @@ type Fake struct {
 	Info map[string]map[string]any
 	// Metadata holds asset metadata written via PUT /assets/{id}/metadata.
 	Metadata map[string]map[string]any
+	// Trashed asset IDs, returned by searches with trashedAfter.
+	Trashed map[string]bool
 }
 
 // Tag is a fake tag.
@@ -43,7 +45,8 @@ type Tag struct {
 // New returns an empty Fake.
 func New() *Fake {
 	return &Fake{tags: map[string]*Tag{}, assets: map[string]map[string]bool{}, Requests: map[string]int{},
-		Originals: map[string][]byte{}, Info: map[string]map[string]any{}, Metadata: map[string]map[string]any{}}
+		Originals: map[string][]byte{}, Info: map[string]map[string]any{}, Metadata: map[string]map[string]any{},
+		Trashed: map[string]bool{}}
 }
 
 func (f *Fake) id() string {
@@ -230,19 +233,28 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodPost && path == "/search/metadata":
 		var body struct {
-			TagIDs     []string `json:"tagIds"`
-			Page, Size int
+			TagIDs       []string `json:"tagIds"`
+			TrashedAfter string   `json:"trashedAfter"`
+			Page, Size   int
 		}
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		f.Pages++
-		root := f.tags[body.TagIDs[0]]
 		var ids []string
-		for a, ts := range f.assets {
-			for id := range ts {
-				v := f.tags[id].Value
-				if v == root.Value || strings.HasPrefix(v, root.Value+"/") {
-					ids = append(ids, a)
-					break
+		if body.TrashedAfter != "" {
+			for a := range f.Trashed {
+				ids = append(ids, a)
+			}
+			body.TagIDs = nil
+		}
+		if len(body.TagIDs) > 0 {
+			root := f.tags[body.TagIDs[0]]
+			for a, ts := range f.assets {
+				for id := range ts {
+					v := f.tags[id].Value
+					if v == root.Value || strings.HasPrefix(v, root.Value+"/") {
+						ids = append(ids, a)
+						break
+					}
 				}
 			}
 		}

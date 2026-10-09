@@ -126,7 +126,14 @@ func (e *Engine) Execute(ctx context.Context, req RunRequest) error {
 	}
 	if req.AssetID != "" {
 		asset := map[string]any{"id": req.AssetID}
-		if e.deps.LoadAsset != nil {
+		snap := snapshot(req.Event.Data, req.AssetID)
+		switch {
+		case snap != nil:
+			// Taken by the hook before Immich changed the asset (e.g. deleted it).
+			asset = snap
+		case req.Event.Type == events.AssetDeleted:
+			// Gone from Immich and no snapshot: only the ID is known.
+		case e.deps.LoadAsset != nil:
 			a, err := e.deps.LoadAsset(ctx, req.Event.UserID, req.AssetID)
 			if err != nil {
 				return fmt.Errorf("load asset %s: %w", req.AssetID, err)
@@ -162,6 +169,23 @@ func (e *Engine) Execute(ctx context.Context, req RunRequest) error {
 		e.log.Warn("run failed", "flow", f.ID, "run", r.id, "asset", req.AssetID, "err", runErr)
 	}
 	return runErr
+}
+
+// snapshot returns the asset captured in event data (data.assets[id]), if any.
+func snapshot(data map[string]any, id string) map[string]any {
+	assets, _ := data["assets"].(map[string]any)
+	m, _ := assets[id].(map[string]any)
+	return m
+}
+
+// Wants reports whether an enabled flow is triggered by eventType.
+func (e *Engine) Wants(eventType string) bool {
+	for _, f := range e.flows.Flows() {
+		if f.IsEnabled() && f.Trigger.On == eventType {
+			return true
+		}
+	}
+	return false
 }
 
 // processed reports whether Immich finished metadata extraction: exifInfo.modifyDate is only
