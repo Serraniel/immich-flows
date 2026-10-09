@@ -1,0 +1,42 @@
+name: E2E
+
+on:
+  pull_request:
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "Dockerfile"
+      - "e2e/**"
+      - ".github/workflows/e2e.yml"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Start stack
+        working-directory: e2e
+        run: docker compose up -d --build --wait
+      - run: go test -tags e2e -count=1 -v ./e2e/
+      - name: Logs
+        if: failure()
+        working-directory: e2e
+        run: docker compose logs
+      - name: Stop stack
+        if: always()
+        working-directory: e2e
+        run: docker compose down -v

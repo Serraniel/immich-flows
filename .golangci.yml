@@ -1,4 +1,6 @@
 version: "2"
+run:
+  build-tags: [e2e]
 linters:
   enable:
     - bodyclose
@@ -8,6 +10,13 @@ linters:
     - revive
     - unconvert
     - unparam
+  settings:
+    gosec:
+      excludes:
+        # MD5/SHA-1 identify files (Immich uses SHA-1 checksums); not used for security.
+        - G401
+        - G501
+        - G505
 formatters:
   enable:
     - gofmt
