@@ -5,6 +5,7 @@
 Requirements: Go (version in `go.mod`), Docker.
 
 ```sh
+go generate ./...   # Immich client from internal/immich/spec
 go test -race ./...
 docker run --rm -v "$PWD:/app" -w /app golangci/golangci-lint:latest golangci-lint run
 docker build -t immich-flows:dev .

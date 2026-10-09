@@ -1,0 +1,44 @@
+name: Immich spec
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Fetch latest release spec
+        id: spec
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release view -R immich-app/immich --json tagName -q .tagName)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          curl -sfL "https://raw.githubusercontent.com/immich-app/immich/$tag/open-api/immich-openapi-specs.json" \
+            -o internal/immich/spec/immich-openapi-specs.json
+          echo "$tag" > internal/immich/spec/VERSION
+      - run: go generate ./... && go build ./...
+      - name: Open PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.spec.outputs.tag }}
+        run: |
+          git diff --quiet && exit 0
+          branch="chore/immich-spec-$TAG"
+          git ls-remote --exit-code --heads origin "$branch" && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -am "chore(immich): update API spec to $TAG"
+          git push origin "$branch"
+          gh pr create --fill --body "Spec update to Immich $TAG. CI does not run on bot PRs: close and reopen to trigger it."
