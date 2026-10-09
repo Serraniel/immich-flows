@@ -54,6 +54,17 @@ Unknown fields are errors.
 - Failed runs are retried with backoff (up to 8 attempts), always from the first step: steps must be idempotent. Expression errors are not retried.
 - Every run and step (status, output, error, duration) is stored in the run log.
 
+## Manual runs and backfill
+
+Run a flow on existing assets, regardless of its trigger, as the caller (must be connected):
+
+```http
+POST /_flows/api/flows/<id>/run
+{"assetIds": ["..."]}   or   {"all": true}
+```
+
+`trigger.type` is `manual` in these runs. Guard upload-only steps, e.g. `hash` with `source: original`, with `if: trigger.type == "asset.uploaded"`.
+
 ## Files
 
 Flows are loaded from `IMMICH_FLOWS_FLOWS_DIR` (default `/data/flows`): `*.yaml` and `*.yml`, including subdirectories. Hidden files and directories are ignored. Changes are picked up within ~2 s.

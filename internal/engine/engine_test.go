@@ -251,3 +251,13 @@ func TestSnapshotAndDeletedAssets(t *testing.T) {
 		t.Error("Wants")
 	}
 }
+
+func TestSkipWhenDependencySaysSo(t *testing.T) {
+	h := newHarness(t, parse(t, "id: f\ntrigger: {on: manual}\nsteps: [{use: record}]\n"))
+	h.e.deps.LoadAsset = func(context.Context, string, string) (map[string]any, error) {
+		return nil, fmt.Errorf("%w: not connected", ErrSkip)
+	}
+	if err := h.e.Execute(context.Background(), RunRequest{FlowID: "f", AssetID: "a", Event: events.Event{Type: events.Manual}}); err != nil || len(h.calls) != 0 {
+		t.Errorf("err=%v calls=%d", err, len(h.calls))
+	}
+}

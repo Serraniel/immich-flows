@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/serraniel/immich-flows/internal/events"
 	"github.com/serraniel/immich-flows/internal/queue"
@@ -48,3 +49,21 @@ func (e *Engine) Register(q *queue.Queue) {
 		return e.Execute(ctx, req)
 	})
 }
+
+// RunFlow queues one run of flowID per asset, regardless of the flow's trigger. Used for manual
+// runs and backfills; the event type is "manual".
+func (e *Engine) RunFlow(ctx context.Context, q Enqueuer, flowID, userID string, assetIDs []string) (int, error) {
+	if _, ok := e.flows.Flow(flowID); !ok {
+		return 0, ErrUnknownFlow
+	}
+	ev := events.Event{Type: events.Manual, Time: e.now().UTC(), UserID: userID}
+	for i, id := range assetIDs {
+		if _, err := q.Enqueue(ctx, JobRun, RunRequest{FlowID: flowID, Event: ev, AssetID: id}); err != nil {
+			return i, err
+		}
+	}
+	return len(assetIDs), nil
+}
+
+// ErrUnknownFlow is returned for flow IDs that are not loaded or invalid.
+var ErrUnknownFlow = errors.New("unknown flow")

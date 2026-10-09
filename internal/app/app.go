@@ -85,7 +85,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           routes(px, api.New(proxy.Prefix+"/api", cfg.Immich, users, conn, flowDir, log)),
+		Handler:           routes(px, api.New(proxy.Prefix+"/api", api.Deps{Immich: cfg.Immich, Auth: users, Conn: conn, Flows: flowDir, Runner: eng, Jobs: jobs, Log: log})),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	errc := make(chan error, 1)
@@ -107,12 +107,12 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	return nil
 }
 
-// userClients returns Immich clients acting as a connected user. Unconnected users fail permanently.
+// userClients returns Immich clients acting as a connected user. Runs for unconnected users are skipped.
 func userClients(conn *connect.Manager) engine.ClientFunc {
 	return func(ctx context.Context, userID string) (*immich.ClientWithResponses, error) {
 		c, err := conn.Client(ctx, userID)
 		if errors.Is(err, connect.ErrNotConnected) {
-			return nil, queue.Permanent(err)
+			return nil, queue.Permanent(fmt.Errorf("%w: %w", engine.ErrSkip, err))
 		}
 		return c, err
 	}

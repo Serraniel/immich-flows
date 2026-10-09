@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"testing"
 	"time"
@@ -31,4 +32,32 @@ func TestRegisterRunsThroughQueue(t *testing.T) {
 	}
 	s, _ := q.Stats(ctx)
 	t.Fatalf("jobs: %v", s)
+}
+
+func TestRunFlow(t *testing.T) {
+	h := newHarness(t, parse(t, "id: f\ntrigger: {on: asset.uploaded}\nsteps: [{use: record, with: {t: '{{ trigger.type }}'}}]\n"))
+	q := queue.New(h.db, slog.New(slog.DiscardHandler), queue.Options{Workers: 1, Poll: 5 * time.Millisecond})
+	h.e.Register(q)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { _ = q.Run(ctx); close(done) }()
+	defer func() { cancel(); <-done }()
+
+	if _, err := h.e.RunFlow(ctx, q, "nope", "u", []string{"a"}); !errors.Is(err, ErrUnknownFlow) {
+		t.Errorf("unknown flow: %v", err)
+	}
+	n, err := h.e.RunFlow(ctx, q, "f", "u", []string{"a", "b"})
+	if err != nil || n != 2 {
+		t.Fatalf("%d %v", n, err)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if s, _ := q.Stats(ctx); s["done"] == 2 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if s, _ := q.Stats(ctx); s["done"] != 2 {
+		t.Fatalf("jobs %v", s)
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -31,6 +32,10 @@ type FlowSource interface {
 	Flows() []*flow.Flow
 	Flow(id string) (*flow.Flow, bool)
 }
+
+// ErrSkip skips a run without recording a failure when a dependency returns an error wrapping it
+// (e.g. the user has not connected).
+var ErrSkip = errors.New("run skipped")
 
 // StaticFlows is a fixed FlowSource.
 type StaticFlows []*flow.Flow
@@ -135,6 +140,10 @@ func (e *Engine) Execute(ctx context.Context, req RunRequest) error {
 			// Gone from Immich and no snapshot: only the ID is known.
 		case e.deps.LoadAsset != nil:
 			a, err := e.deps.LoadAsset(ctx, req.Event.UserID, req.AssetID)
+			if errors.Is(err, ErrSkip) {
+				e.log.Debug("run skipped", "flow", f.ID, "asset", req.AssetID, "reason", err)
+				return nil
+			}
 			if err != nil {
 				return fmt.Errorf("load asset %s: %w", req.AssetID, err)
 			}
