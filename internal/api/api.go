@@ -51,6 +51,7 @@ func New(prefix string, d Deps) http.Handler {
 	mux.HandleFunc("POST "+prefix+"/connection", s.connect)
 	mux.HandleFunc("DELETE "+prefix+"/connection", s.disconnect)
 	mux.HandleFunc("POST "+prefix+"/tags/move", s.moveTag)
+	mux.HandleFunc("POST "+prefix+"/tags/bulk", s.bulkTags)
 	mux.Handle("GET "+prefix+"/flows", auth.RequireAdmin(http.HandlerFunc(s.listFlows)))
 	mux.HandleFunc("POST "+prefix+"/flows/{id}/run", s.runFlow)
 	mux.HandleFunc(prefix+"/", func(w http.ResponseWriter, _ *http.Request) {
