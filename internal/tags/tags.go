@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"golang.org/x/sync/errgroup"
@@ -19,6 +20,15 @@ const (
 	pageSize    = 1000
 	concurrency = 8
 	tagBatch    = 500
+
+	settleRounds = 5
+)
+
+// Variables for tests.
+var (
+	pollInterval = 250 * time.Millisecond
+	fallbackWait = 3 * time.Second
+	maxQuietWait = 2 * time.Minute
 )
 
 // ErrInvalid is returned for impossible moves (same path, into own subtree, unknown source).
@@ -43,7 +53,8 @@ type Change struct {
 type Plan struct {
 	Move    Move     `json:"move"`
 	Changes []Change `json:"changes"`
-	Assets  int      `json:"assets"` // distinct assets affected
+	Assets  int      `json:"assets"`            // distinct assets affected
+	Settled bool     `json:"settled,omitempty"` // source stayed deleted after Immich's background jobs
 }
 
 // Service runs tag operations with one user's Immich client.
@@ -83,9 +94,90 @@ func (s *Service) Plan(ctx context.Context, m Move) (*Plan, error) {
 	return &Plan{Move: Move{From: normalize(m.From), To: normalize(m.To)}, Changes: st.changes, Assets: st.assets}, nil
 }
 
-// Apply performs a move: create targets, tag assets, delete the source subtree.
-// It is safe to re-run after a partial failure.
+// Apply performs a move: create targets, tag assets, delete the source subtree. It is safe to
+// re-run after a partial failure.
+//
+// Immich writes tags to sidecar files in background jobs and re-imports them afterwards. A job
+// that runs between tagging and deleting can bring the source tags back. Apply therefore waits
+// for Immich to settle and repeats the move until the source stays gone.
 func (s *Service) Apply(ctx context.Context, m Move) (*Plan, error) {
+	plan, err := s.applyOnce(ctx, m)
+	if err != nil {
+		return nil, err
+	}
+	from := normalize(m.From)
+	for range settleRounds {
+		if err := s.waitQuiet(ctx); err != nil {
+			return nil, err
+		}
+		back, err := s.exists(ctx, from)
+		if err != nil {
+			return nil, err
+		}
+		if !back {
+			plan.Settled = true
+			return plan, nil
+		}
+		if _, err := s.applyOnce(ctx, m); err != nil {
+			return nil, err
+		}
+	}
+	return plan, nil
+}
+
+func (s *Service) exists(ctx context.Context, value string) (bool, error) {
+	res, err := s.c.GetAllTagsWithResponse(ctx)
+	if err != nil {
+		return false, err
+	}
+	if err := immich.Check(res, res.Body); err != nil {
+		return false, err
+	}
+	for _, t := range *res.JSON200 {
+		if t.Value == value {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// waitQuiet waits until Immich's job queues are idle. Without permission to read queues
+// (non-admin callers) it waits a fixed time.
+func (s *Service) waitQuiet(ctx context.Context) error {
+	deadline := time.Now().Add(maxQuietWait)
+	for {
+		res, err := s.c.GetQueuesWithResponse(ctx)
+		if err != nil {
+			return err
+		}
+		if res.JSON200 == nil {
+			return sleep(ctx, fallbackWait)
+		}
+		busy := false
+		for _, q := range *res.JSON200 {
+			busy = busy || q.Statistics.Active+q.Statistics.Waiting+q.Statistics.Delayed > 0
+		}
+		if !busy || time.Now().After(deadline) {
+			return nil
+		}
+		if err := sleep(ctx, pollInterval); err != nil {
+			return err
+		}
+	}
+}
+
+func sleep(ctx context.Context, d time.Duration) error {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
+}
+
+func (s *Service) applyOnce(ctx context.Context, m Move) (*Plan, error) {
 	st, err := s.prepare(ctx, m)
 	if err != nil {
 		return nil, err

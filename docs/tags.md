@@ -17,3 +17,4 @@ POST /_flows/api/tags/move
 - Applies to the caller's own tags, with the caller's credentials.
 - Steps: create target tags, tag the assets (trashed included), delete the source subtree. Safe to re-run after a failure.
 - Moving a tag into its own subtree is rejected.
+- Immich re-imports tags from sidecar files after its background sidecar jobs, which can bring source tags back. The move waits for Immich's queues to go idle (fixed 3 s for non-admins) and repeats until the source stays gone, up to 5 times. `settled: false` in the response means: re-run later.

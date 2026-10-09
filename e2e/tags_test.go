@@ -47,8 +47,11 @@ func TestTagMove(t *testing.T) {
 	p := fmt.Sprintf("move%d", time.Now().UnixNano())
 	a1 := c.upload("a1.jpg", randomJPEG(t)).ID
 	a2 := c.upload("a2.jpg", randomJPEG(t)).ID
+	c.waitIdle()
 	c.tagAsset(a1, p+"/XX")
 	c.tagAsset(a2, p+"/XX/child", p+"/keep")
+	// Pending metadata extraction would re-import tags from sidecars written before the move.
+	c.waitIdle()
 
 	var plan struct {
 		Assets  int `json:"assets"`
@@ -66,6 +69,7 @@ func TestTagMove(t *testing.T) {
 	if s := c.json(http.MethodPost, "/_flows/api/tags/move", req, &plan); s != http.StatusOK {
 		t.Fatalf("apply: %d", s)
 	}
+	c.waitIdle()
 	if got := c.assetTags(a1); fmt.Sprint(got) != fmt.Sprint([]string{p + "/YY/XX"}) {
 		t.Errorf("a1: %v", got)
 	}

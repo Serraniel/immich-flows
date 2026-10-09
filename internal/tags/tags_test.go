@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/serraniel/immich-flows/internal/immich"
 )
@@ -111,6 +112,23 @@ func TestInvalid(t *testing.T) {
 	for _, m := range []Move{{"a", "a"}, {"a", "a/b"}, {"", "x"}, {"missing", "x"}, {" a / ", "a"}} {
 		if _, err := s.Plan(context.Background(), m); !errors.Is(err, ErrInvalid) {
 			t.Errorf("%+v: %v", m, err)
+		}
+	}
+}
+
+func TestApplySettlesAfterResurrection(t *testing.T) {
+	fallbackWait = time.Millisecond
+	for _, forbidden := range []bool{false, true} {
+		s, f := setup(t)
+		f.tag(asset(1), "old")
+		f.resurrect, f.queuesForbidden = true, forbidden
+		plan, err := s.Apply(context.Background(), Move{From: "old", To: "new"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		assets, values := f.state()
+		if !plan.Settled || f.deletes != 2 || assets != asset(1)+": new" || values != "new" {
+			t.Errorf("forbidden=%v settled=%v deletes=%d %s | %s", forbidden, plan.Settled, f.deletes, assets, values)
 		}
 	}
 }

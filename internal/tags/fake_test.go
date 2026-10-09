@@ -17,6 +17,11 @@ type fakeImmich struct {
 	tags   map[string]*fakeTag // id -> tag
 	assets map[string]map[string]bool
 	pages  int
+	// resurrect re-adds a deleted tag to its assets once, like Immich's sidecar re-import race.
+	resurrect bool
+	// queuesForbidden makes GET /queues return 403 (non-admin caller).
+	queuesForbidden bool
+	deletes         int
 }
 
 type fakeTag struct {
@@ -136,8 +141,29 @@ func (f *fakeImmich) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		t := f.tags[strings.TrimPrefix(path, "/tags/")]
 		t.Color = body.Color
 		f.json(w, f.tagDTO(t))
+	case r.Method == http.MethodGet && path == "/queues":
+		if f.queuesForbidden {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		f.json(w, []any{map[string]any{"name": "sidecar", "isPaused": false, "statistics": map[string]int{}}})
 	case r.Method == http.MethodDelete && strings.HasPrefix(path, "/tags/"):
+		f.deletes++
 		root := f.tags[strings.TrimPrefix(path, "/tags/")]
+		var had []string
+		for a, ts := range f.assets {
+			if ts[root.ID] {
+				had = append(had, a)
+			}
+		}
+		defer func() {
+			if f.resurrect {
+				f.resurrect = false
+				for _, a := range had {
+					f.tag(a, root.Value)
+				}
+			}
+		}()
 		for id, t := range f.tags {
 			if t.Value == root.Value || strings.HasPrefix(t.Value, root.Value+"/") {
 				delete(f.tags, id)

@@ -153,3 +153,29 @@ func (c *client) upload(name string, data []byte) uploaded {
 	}
 	return out
 }
+
+// waitIdle waits until Immich has no queued or running background jobs (metadata extraction,
+// sidecar writes, …), so assertions see the final state.
+func (c *client) waitIdle() {
+	c.t.Helper()
+	deadline := time.Now().Add(time.Minute)
+	for time.Now().Before(deadline) {
+		var queues []struct {
+			Statistics struct {
+				Active, Waiting, Delayed int
+			} `json:"statistics"`
+		}
+		if s := c.json(http.MethodGet, "/api/queues", nil, &queues); s != http.StatusOK {
+			c.t.Fatalf("queues: %d", s)
+		}
+		busy := false
+		for _, q := range queues {
+			busy = busy || q.Statistics.Active+q.Statistics.Waiting+q.Statistics.Delayed > 0
+		}
+		if !busy {
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	c.t.Fatal("immich jobs did not finish")
+}

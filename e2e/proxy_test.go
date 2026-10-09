@@ -59,6 +59,8 @@ func TestUploadThroughProxy(t *testing.T) {
 func TestTagsThroughProxy(t *testing.T) {
 	c := adminClient(t)
 	up := c.upload("tag.jpg", randomJPEG(t))
+	// Tags set before Immich's metadata extraction can be overwritten by it.
+	c.waitIdle()
 
 	var tags []struct {
 		ID    string `json:"id"`

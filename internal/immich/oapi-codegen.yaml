@@ -24,3 +24,4 @@ output-options:
     - untagAssets
     - bulkTagAssets
     - getAssetDuplicates
+    - getQueues
