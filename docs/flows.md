@@ -53,6 +53,16 @@ Flows load from `/data/flows/*.yaml` (read-only in UI, GitOps-friendly) and from
 
 `if:` fields and `{{ }}` templates use [expr](https://expr-lang.org/docs/language-definition). Available: `trigger`, `asset`, `steps.<id>`, `vars`, `env` (allowlisted).
 
+- `if:` must return a bool. Empty means true.
+- A value that is exactly one `{{ }}` keeps its type (list, number, …). Mixed text is formatted as a string.
+- A list template inside a list is flattened: `tags: ['a', '{{ ["b", "c"] }}']` → `[a, b, c]`.
+- Missing fields: use `?.` (`asset?.exif?.make`).
+
+```yaml
+if: 'asset.originalFileName startsWith "SERVICE-A_"'
+tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
+```
+
 ## Triggers
 
 | Trigger | Payload |
