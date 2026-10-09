@@ -1,0 +1,7 @@
+id: e2e-duplicates
+trigger:
+  on: duplicates.resolved
+steps:
+  - use: tag.assign
+    with:
+      tags: 'e2e-dup/resolved-{{ len(trigger.data.trashed) }}'

@@ -86,7 +86,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | `asset.trashed` | trashed via `DELETE /api/assets` |
 | `asset.deleted` | permanently deleted (`force`, or emptied trash). `asset` comes from a snapshot taken before deletion (max 500 assets), otherwise only `asset.id` |
 | `asset.restored` | restored from trash |
-| `duplicates.resolved` | `kept`, `trashed`, tags of all assets before resolution |
+| `duplicates.resolved` | one run per kept asset. `trigger.data`: `duplicateId`, `kept`, `trashed` (asset IDs), `assets` (snapshots before resolution), `tags` (asset ID → tag values before resolution). Trashed assets also emit `asset.trashed` |
 | `tag.assigned` / `tag.removed` | `tag`, `assets` |
 | `manual` | `assets` selected in UI |
 | `schedule` (low priority) | cron |
