@@ -92,8 +92,9 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | Step | Purpose |
 | --- | --- |
 | `hash` | `source: original\|stored`, `algorithms: [md5, sha1, sha256, sha512]` |
-| `regex` | named groups become outputs |
-| `set` | assign variables |
+| `regex` | `input`, `pattern` (RE2), `caseInsensitive`. Outputs: `matched`, `match`, `groups`, and each named group |
+| `split` | `input`, `separator` (default `_`), `trim`, `skipEmpty` (both default true). Outputs: `items`, `count` |
+| `set` | any keys; available as `vars.<key>` |
 | `switch` | branch, see `cases` |
 | `tag.read` | tags of an asset, optional prefix filter |
 | `tag.assign` / `tag.remove` | create missing tags (hierarchical `a/b/c`), assign |

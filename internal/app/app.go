@@ -22,6 +22,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/immich"
 	"github.com/serraniel/immich-flows/internal/proxy"
 	"github.com/serraniel/immich-flows/internal/queue"
+	"github.com/serraniel/immich-flows/internal/steps"
 	"github.com/serraniel/immich-flows/internal/store"
 	"github.com/serraniel/immich-flows/internal/web"
 )
@@ -45,6 +46,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	users := auth.New(cfg.Immich, nil)
 
 	reg := engine.NewRegistry()
+	steps.Register(reg)
 	flowDir := flows.NewDir(cfg.FlowsDir, reg, log)
 	if err := flowDir.Load(); err != nil {
 		return fmt.Errorf("load flows: %w", err)
