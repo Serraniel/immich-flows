@@ -11,7 +11,7 @@ func TestLoadDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Listen != ":2283" || c.DataDir != "/data" {
+	if c.Listen != ":2283" || c.DataDir != "/data" || c.Workers != 4 {
 		t.Errorf("unexpected defaults: %+v", c)
 	}
 	if c.Immich.String() != c.Upstream.String() {
@@ -23,6 +23,7 @@ func TestLoadErrors(t *testing.T) {
 	cases := map[string]map[string]string{
 		"missing upstream": {},
 		"invalid upstream": {"IMMICH_FLOWS_UPSTREAM_URL": "immich-server"},
+		"invalid workers":  {"IMMICH_FLOWS_UPSTREAM_URL": "http://a:1", "IMMICH_FLOWS_WORKERS": "0"},
 		"invalid level":    {"IMMICH_FLOWS_UPSTREAM_URL": "http://a:1", "IMMICH_FLOWS_LOG_LEVEL": "loud"},
 	}
 	for name, m := range cases {

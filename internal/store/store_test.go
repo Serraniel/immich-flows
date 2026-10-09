@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"io/fs"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
@@ -10,6 +11,7 @@ import (
 func TestOpenMigratesOnce(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "db.sqlite")
+	files, _ := fs.Glob(migrations, "migrations/*.sql")
 
 	for range 2 {
 		db, err := Open(ctx, path)
@@ -20,8 +22,8 @@ func TestOpenMigratesOnce(t *testing.T) {
 		if err := db.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil {
 			t.Fatal(err)
 		}
-		if n != 1 {
-			t.Errorf("migrations recorded: %d", n)
+		if n != len(files) {
+			t.Errorf("migrations recorded: %d, want %d", n, len(files))
 		}
 		var mode string
 		_ = db.QueryRow(`PRAGMA journal_mode`).Scan(&mode)

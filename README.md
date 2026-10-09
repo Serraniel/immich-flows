@@ -46,6 +46,7 @@ Image tags: `latest`, `X.Y.Z`, `X.Y`, `edge` (main branch).
 | `IMMICH_FLOWS_IMMICH_URL` | upstream | Direct Immich URL for API calls |
 | `IMMICH_FLOWS_LISTEN` | `:2283` | Listen address |
 | `IMMICH_FLOWS_DATA_DIR` | `/data` | Database and flow files |
+| `IMMICH_FLOWS_WORKERS` | `4` | Concurrent flow jobs |
 | `IMMICH_FLOWS_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 
 ## Docs

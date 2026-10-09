@@ -17,6 +17,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/config"
 	"github.com/serraniel/immich-flows/internal/flow"
 	"github.com/serraniel/immich-flows/internal/proxy"
+	"github.com/serraniel/immich-flows/internal/queue"
 	"github.com/serraniel/immich-flows/internal/store"
 	"github.com/serraniel/immich-flows/internal/web"
 )
@@ -62,6 +63,17 @@ func run() error {
 		return fmt.Errorf("open database: %w", err)
 	}
 	defer func() { _ = db.Close() }()
+
+	jobs := queue.New(db, log, queue.Options{Workers: cfg.Workers})
+	jobsCtx, stopJobs := context.WithCancel(context.Background())
+	jobsDone := make(chan error, 1)
+	go func() { jobsDone <- jobs.Run(jobsCtx) }()
+	defer func() {
+		stopJobs()
+		if err := <-jobsDone; err != nil {
+			log.Error("job queue", "err", err)
+		}
+	}()
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
