@@ -68,4 +68,24 @@ func TestFlowHashTags(t *testing.T) {
 		"e2e-hashes/SHA1/STORED/" + hex.EncodeToString(s1[:]),
 		"e2e-hashes/SHA256/ORIGINAL/" + hex.EncodeToString(s256[:]),
 	})
+
+	// metadata.set runs after tag.assign in the same flow.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		var meta []struct {
+			Key   string            `json:"key"`
+			Value map[string]string `json:"value"`
+		}
+		c.json(http.MethodGet, "/api/assets/"+up.ID+"/metadata", nil, &meta)
+		for _, m := range meta {
+			if m.Key == "immich-flows.hashes" && m.Value["originalMd5"] == hex.EncodeToString(md[:]) &&
+				m.Value["storedSha1"] == hex.EncodeToString(s1[:]) {
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("metadata: %+v", meta)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
 }

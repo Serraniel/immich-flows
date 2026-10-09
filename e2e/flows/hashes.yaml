@@ -16,3 +16,9 @@ steps:
         - 'e2e-hashes/SHA256/ORIGINAL/{{ steps.original.sha256 }}'
         - 'e2e-hashes/MD5/STORED/{{ steps.stored.md5 }}'
         - 'e2e-hashes/SHA1/STORED/{{ steps.stored.sha1 }}'
+  - use: metadata.set
+    with:
+      key: immich-flows.hashes
+      value:
+        originalMd5: '{{ steps.original.md5 }}'
+        storedSha1: '{{ steps.stored.sha1 }}'
