@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/serraniel/immich-flows/internal/api"
+	"github.com/serraniel/immich-flows/internal/auth"
 	"github.com/serraniel/immich-flows/internal/config"
 	"github.com/serraniel/immich-flows/internal/flow"
 	"github.com/serraniel/immich-flows/internal/proxy"
@@ -65,7 +67,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           routes(proxy.New(cfg.Upstream, log)),
+		Handler:           routes(proxy.New(cfg.Upstream, log), api.New(proxy.Prefix+"/api", auth.New(cfg.Immich, nil))),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 
@@ -89,9 +91,10 @@ func run() error {
 	return nil
 }
 
-func routes(px http.Handler) http.Handler {
+func routes(px, apiHandler http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle(proxy.Prefix+"/", web.Handler(proxy.Prefix))
+	mux.Handle(proxy.Prefix+"/api/", apiHandler)
 	mux.Handle("GET "+proxy.Prefix+"/healthz", px)
 	mux.Handle("/", px)
 	return mux
