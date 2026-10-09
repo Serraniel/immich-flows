@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { BASE } from './src/lib/base';
+import { BASE } from './src/lib/base.ts';
 
 export default defineConfig({
 	plugins: [

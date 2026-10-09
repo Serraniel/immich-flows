@@ -22,3 +22,33 @@ func TestAPIAuth(t *testing.T) {
 		t.Errorf("me: %d %+v", s, me)
 	}
 }
+
+func TestConnection(t *testing.T) {
+	c := adminClient(t)
+	var st struct {
+		Connected bool `json:"connected"`
+	}
+	if s := c.json(http.MethodPost, "/_flows/api/connection", nil, &st); s != http.StatusOK || !st.Connected {
+		t.Fatalf("connect: %d %+v", s, st)
+	}
+
+	var keys []struct {
+		Name string `json:"name"`
+	}
+	c.json(http.MethodGet, "/api/api-keys", nil, &keys)
+	found := false
+	for _, k := range keys {
+		found = found || k.Name == "immich-flows"
+	}
+	if !found {
+		t.Errorf("immich-flows key not created in Immich: %+v", keys)
+	}
+
+	if s := c.json(http.MethodDelete, "/_flows/api/connection", nil, nil); s != http.StatusNoContent {
+		t.Fatalf("disconnect: %d", s)
+	}
+	c.json(http.MethodGet, "/_flows/api/connection", nil, &st)
+	if st.Connected {
+		t.Error("still connected")
+	}
+}

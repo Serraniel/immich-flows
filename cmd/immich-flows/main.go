@@ -17,6 +17,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/api"
 	"github.com/serraniel/immich-flows/internal/auth"
 	"github.com/serraniel/immich-flows/internal/config"
+	"github.com/serraniel/immich-flows/internal/connect"
 	"github.com/serraniel/immich-flows/internal/flow"
 	"github.com/serraniel/immich-flows/internal/proxy"
 	"github.com/serraniel/immich-flows/internal/queue"
@@ -66,6 +67,12 @@ func run() error {
 	}
 	defer func() { _ = db.Close() }()
 
+	key, err := connect.LoadKey(cfg.Secret, cfg.DataDir)
+	if err != nil {
+		return fmt.Errorf("load secret: %w", err)
+	}
+	conn := connect.New(db, key, cfg.Immich, nil)
+
 	jobs := queue.New(db, log, queue.Options{Workers: cfg.Workers})
 	jobsCtx, stopJobs := context.WithCancel(context.Background())
 	jobsDone := make(chan error, 1)
@@ -79,7 +86,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           routes(proxy.New(cfg.Upstream, log), api.New(proxy.Prefix+"/api", auth.New(cfg.Immich, nil))),
+		Handler:           routes(proxy.New(cfg.Upstream, log), api.New(proxy.Prefix+"/api", auth.New(cfg.Immich, nil), conn, log)),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 
