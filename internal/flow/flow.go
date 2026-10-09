@@ -213,3 +213,13 @@ func (f *Flow) validate() Errors {
 	})
 	return errs
 }
+
+// ErrorAt returns a validation error positioned at the step.
+func (s *Step) ErrorAt(format string, a ...any) Error {
+	return Error{Line: s.pos.line, Col: s.pos.col, Msg: fmt.Sprintf(format, a...)}
+}
+
+// ErrorAt returns a validation error positioned at the trigger.
+func (t *Trigger) ErrorAt(format string, a ...any) Error {
+	return Error{Line: t.pos.line, Col: t.pos.col, Msg: fmt.Sprintf(format, a...)}
+}
