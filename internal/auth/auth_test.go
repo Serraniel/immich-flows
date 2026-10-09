@@ -52,7 +52,7 @@ func request(h http.Handler, set func(*http.Request)) int {
 func TestMiddleware(t *testing.T) {
 	var calls atomic.Int32
 	a := New(fakeImmich(t, &calls), nil)
-	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ok := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		if FromContext(r.Context()) == nil {
 			t.Error("user missing in context")
 		}
@@ -68,8 +68,8 @@ func TestMiddleware(t *testing.T) {
 	}{
 		{"none", h, func(*http.Request) {}, http.StatusUnauthorized},
 		{"bad key", h, func(r *http.Request) { r.Header.Set("x-api-key", "nope") }, http.StatusUnauthorized},
-		{"cookie", h, func(r *http.Request) { r.AddCookie(&http.Cookie{Name: "immich_access_token", Value: "tok"}) }, http.StatusOK},
-		{"other cookie only", h, func(r *http.Request) { r.AddCookie(&http.Cookie{Name: "x", Value: "y"}) }, http.StatusUnauthorized},
+		{"cookie", h, func(r *http.Request) { r.Header.Set("Cookie", "immich_access_token=tok") }, http.StatusOK},
+		{"other cookie only", h, func(r *http.Request) { r.Header.Set("Cookie", "x=y") }, http.StatusUnauthorized},
 		{"user on admin route", admin, func(r *http.Request) { r.Header.Set("x-api-key", "user-key") }, http.StatusForbidden},
 		{"admin on admin route", admin, func(r *http.Request) { r.Header.Set("x-api-key", "admin-key") }, http.StatusOK},
 		{"immich error", h, func(r *http.Request) { r.Header.Set("x-api-key", "broken") }, http.StatusBadGateway},
