@@ -1,0 +1,51 @@
+# E2E stack: immich-flows (built from source) in front of Immich. Ephemeral, no ML.
+name: immich-flows-e2e
+
+services:
+  immich-flows:
+    build: ..
+    ports:
+      - "${E2E_PORT:-22830}:2283"
+    environment:
+      IMMICH_FLOWS_UPSTREAM_URL: http://immich-server:2283
+      IMMICH_FLOWS_LOG_LEVEL: debug
+    tmpfs:
+      - /data:uid=65532,gid=65532
+    depends_on:
+      immich-server:
+        condition: service_healthy
+
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-v3}
+    environment:
+      DB_PASSWORD: postgres
+      DB_USERNAME: postgres
+      DB_DATABASE_NAME: immich
+      IMMICH_MACHINE_LEARNING_ENABLED: "false"
+    tmpfs:
+      - /data
+    depends_on:
+      redis:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+    healthcheck:
+      disable: false
+
+  redis:
+    image: docker.io/valkey/valkey:9
+    healthcheck:
+      test: redis-cli ping | grep -q PONG || exit 1
+      interval: 2s
+
+  database:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: immich
+    tmpfs:
+      - /var/lib/postgresql/data
+    shm_size: 128mb
+    healthcheck:
+      disable: false

@@ -11,6 +11,14 @@ docker run --rm -v "$PWD:/app" -w /app golangci/golangci-lint:latest golangci-li
 docker build -t immich-flows:dev .
 ```
 
+E2E against a real Immich (Docker, ~2 min first run):
+
+```sh
+docker compose -f e2e/compose.yaml up -d --build --wait
+go test -tags e2e -count=1 ./e2e/
+docker compose -f e2e/compose.yaml down -v
+```
+
 ## Workflow
 
 1. Open or pick an issue. Larger changes: discuss first.
