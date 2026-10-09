@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -20,6 +21,7 @@ type Config struct {
 	LogLevel slog.Level
 	Workers  int    // concurrent flow jobs
 	Secret   string // encrypts stored API keys; generated in DataDir if empty
+	FlowsDir string // flow YAML files
 }
 
 // Load reads the configuration from the environment.
@@ -40,6 +42,7 @@ func load(getenv func(string) string) (*Config, error) {
 		DataDir: get("IMMICH_FLOWS_DATA_DIR", "/data"),
 		Secret:  get("IMMICH_FLOWS_SECRET", ""),
 	}
+	c.FlowsDir = get("IMMICH_FLOWS_FLOWS_DIR", filepath.Join(c.DataDir, "flows"))
 
 	raw := get("IMMICH_FLOWS_UPSTREAM_URL", "")
 	if raw == "" {

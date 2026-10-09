@@ -1,0 +1,7 @@
+id: e2e-log
+trigger:
+  on: manual
+steps:
+  - use: log
+    with:
+      message: 'manual run for {{ asset.id }}'

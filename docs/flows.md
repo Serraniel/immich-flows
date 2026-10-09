@@ -54,9 +54,13 @@ Unknown fields are errors.
 - Failed runs are retried with backoff (up to 8 attempts), always from the first step: steps must be idempotent. Expression errors are not retried.
 - Every run and step (status, output, error, duration) is stored in the run log.
 
-## Sources
+## Files
 
-Flows load from `/data/flows/*.yaml` (read-only in UI, GitOps-friendly) and from the UI (stored in the database, exportable as YAML).
+Flows are loaded from `IMMICH_FLOWS_FLOWS_DIR` (default `/data/flows`): `*.yaml` and `*.yml`, including subdirectories. Hidden files and directories are ignored. Changes are picked up within ~2 s.
+
+Invalid files are logged and listed with their error at `GET /_flows/api/flows` (admins); other flows keep running. Flow IDs must be unique across files.
+
+Flows run for all users who connected immich-flows (see README).
 
 ## Expressions
 

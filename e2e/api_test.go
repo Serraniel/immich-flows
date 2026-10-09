@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -50,5 +51,26 @@ func TestConnection(t *testing.T) {
 	c.json(http.MethodGet, "/_flows/api/connection", nil, &st)
 	if st.Connected {
 		t.Error("still connected")
+	}
+}
+
+func TestFlowFiles(t *testing.T) {
+	c := adminClient(t)
+	var entries []struct {
+		Source string `json:"source"`
+		Error  string `json:"error"`
+		Flow   *struct {
+			ID string `json:"id"`
+		} `json:"flow"`
+	}
+	if s := c.json(http.MethodGet, "/_flows/api/flows", nil, &entries); s != http.StatusOK || len(entries) != 2 {
+		t.Fatalf("flows: %d %+v", s, entries)
+	}
+	got := map[string]string{}
+	for _, e := range entries {
+		got[e.Source] = e.Error
+	}
+	if got["log.yaml"] != "" || !strings.Contains(got["invalid.yaml"], `unknown step "does-not-exist"`) {
+		t.Errorf("%+v", got)
 	}
 }
