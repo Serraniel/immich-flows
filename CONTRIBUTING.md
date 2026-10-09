@@ -19,6 +19,14 @@ go test -tags e2e -count=1 ./e2e/
 docker compose -f e2e/compose.yaml down -v
 ```
 
+UI (`web/`, SvelteKit, built into `internal/web/dist` and embedded in the binary):
+
+```sh
+cd web && npm ci
+npm run lint && npm run check && npm test
+npm run build   # then go build serves it under /_flows/
+```
+
 ## Workflow
 
 1. Open or pick an issue. Larger changes: discuss first.

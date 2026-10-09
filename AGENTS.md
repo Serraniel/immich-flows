@@ -9,3 +9,4 @@
 - Do not add dependencies without need. Pure Go, `CGO_ENABLED=0`.
 - Proxy changes must not buffer request or response bodies.
 - Update `docs/` when behaviour or configuration changes.
+- UI in `web/` (SvelteKit 3, Svelte 5 runes, static SPA under `/_flows`). Before finishing UI work: `npm run lint && npm run check && npm test` in `web/`.
