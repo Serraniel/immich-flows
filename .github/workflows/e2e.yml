@@ -28,6 +28,10 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      - name: Pull images
+        working-directory: e2e
+        # Registries rate-limit bursts (toomanyrequests).
+        run: for i in 1 2 3 4 5; do docker compose pull --ignore-buildable && exit 0; sleep $((i * 10)); done; exit 1
       - name: Start stack
         working-directory: e2e
         run: docker compose up -d --build --wait
