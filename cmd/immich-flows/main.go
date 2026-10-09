@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/serraniel/immich-flows/internal/config"
+	"github.com/serraniel/immich-flows/internal/flow"
 	"github.com/serraniel/immich-flows/internal/proxy"
 	"github.com/serraniel/immich-flows/internal/store"
 )
@@ -22,8 +23,19 @@ import (
 var version = "dev"
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
-		os.Exit(healthcheck())
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "healthcheck":
+			os.Exit(healthcheck())
+		case "schema":
+			b, err := flow.Schema()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			fmt.Println(string(b))
+			return
+		}
 	}
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

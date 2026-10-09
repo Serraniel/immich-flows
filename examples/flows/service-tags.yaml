@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../docs/flow.schema.json
 # Draft syntax, see docs/flows.md. Not implemented yet.
 id: service-tags
 name: Tags and hashes from filenames

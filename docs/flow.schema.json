@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/serraniel/immich-flows/raw/main/docs/flow.schema.json",
+  "$defs": {
+    "Case": {
+      "properties": {
+        "if": {
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/Step"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "steps"
+      ]
+    },
+    "Step": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "description": "Required to reference outputs (steps.\u003cid\u003e)"
+        },
+        "name": {
+          "type": "string"
+        },
+        "use": {
+          "type": "string"
+        },
+        "if": {
+          "type": "string",
+          "description": "Expression; the step is skipped if false"
+        },
+        "with": {
+          "type": "object"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/Case"
+          },
+          "type": "array",
+          "description": "Only for use: switch. First matching case runs."
+        },
+        "continueOnError": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "use"
+      ]
+    },
+    "Trigger": {
+      "properties": {
+        "on": {
+          "type": "string",
+          "enum": [
+            "asset.uploaded",
+            "asset.trashed",
+            "asset.deleted",
+            "asset.restored",
+            "duplicates.resolved",
+            "tag.assigned",
+            "tag.removed",
+            "manual"
+          ]
+        },
+        "if": {
+          "type": "string",
+          "description": "Expression; the flow runs only if true"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "on"
+      ]
+    }
+  },
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "trigger": {
+      "$ref": "#/$defs/Trigger"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "type": "array",
+      "minItems": 1
+    },
+    "ui": {
+      "type": "object",
+      "description": "Editor state (node positions). Ignored by the engine."
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "id",
+    "trigger",
+    "steps"
+  ],
+  "title": "immich-flows flow"
+}
