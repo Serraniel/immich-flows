@@ -45,6 +45,14 @@ JSON Schema for editor completion: [flow.schema.json](flow.schema.json). Add to 
 
 Unknown fields are errors.
 
+## Runs
+
+- An event with several assets starts one run per flow and asset. Without assets, one run per flow.
+- `trigger.if` is evaluated per run; if false, nothing is recorded.
+- Steps run in order. A failing step fails the run unless `continueOnError: true`.
+- Failed runs are retried with backoff (up to 8 attempts), always from the first step: steps must be idempotent. Expression errors are not retried.
+- Every run and step (status, output, error, duration) is stored in the run log.
+
 ## Sources
 
 Flows load from `/data/flows/*.yaml` (read-only in UI, GitOps-friendly) and from the UI (stored in the database, exportable as YAML).

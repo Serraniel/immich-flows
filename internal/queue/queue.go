@@ -184,7 +184,7 @@ func (q *Queue) process(ctx context.Context, j Job) {
 	switch {
 	case err == nil:
 		_, err = q.db.ExecContext(wctx, `UPDATE jobs SET status = 'done', last_error = NULL, updated_at = ? WHERE id = ?`, now.UnixMilli(), j.ID)
-	case errors.As(err, new(permanent)) || j.Attempt >= j.maxAttempts:
+	case IsPermanent(err) || j.Attempt >= j.maxAttempts:
 		q.log.Error("job failed permanently", "id", j.ID, "kind", j.Kind, "attempt", j.Attempt, "err", err)
 		_, err = q.db.ExecContext(wctx, `UPDATE jobs SET status = 'dead', last_error = ?, updated_at = ? WHERE id = ?`, err.Error(), now.UnixMilli(), j.ID)
 	default:
@@ -251,4 +251,9 @@ func (q *Queue) Stats(ctx context.Context) (map[string]int, error) {
 		out[s] = n
 	}
 	return out, rows.Err()
+}
+
+// IsPermanent reports whether err or an error it wraps was marked with Permanent.
+func IsPermanent(err error) bool {
+	return errors.As(err, new(permanent))
 }
