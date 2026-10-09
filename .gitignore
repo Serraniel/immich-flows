@@ -1,0 +1,7 @@
+/immich-flows
+/dist/
+/data/
+*.test
+*.out
+.env
+node_modules/

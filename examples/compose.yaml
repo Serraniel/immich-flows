@@ -1,0 +1,27 @@
+# Additions to the official Immich compose file:
+# https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
+# Remove `ports` from immich-server.
+#
+# Chain: client -> immich-flows -> immich-upload-optimizer -> immich-server
+
+services:
+  immich-flows:
+    image: ghcr.io/serraniel/immich-flows:latest
+    ports:
+      - "2283:2283"
+    environment:
+      IMMICH_FLOWS_UPSTREAM_URL: http://immich-upload-optimizer:2283
+      IMMICH_FLOWS_IMMICH_URL: http://immich-server:2283
+    volumes:
+      - ./flows:/data
+    depends_on:
+      - immich-upload-optimizer
+    restart: always
+
+  immich-upload-optimizer:
+    image: ghcr.io/miguelangel-nubla/immich-upload-optimizer:latest
+    environment:
+      IUO_UPSTREAM: http://immich-server:2283
+    depends_on:
+      - immich-server
+    restart: always

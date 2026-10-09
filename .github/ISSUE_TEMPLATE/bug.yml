@@ -1,0 +1,34 @@
+name: Bug
+description: Something does not work
+labels: ["type: bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, what did you expect
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Include the flow YAML if relevant.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: immich-flows version / image tag
+    validations:
+      required: true
+  - type: input
+    id: immich
+    attributes:
+      label: Immich version
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      render: text

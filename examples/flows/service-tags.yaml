@@ -1,0 +1,51 @@
+# Draft syntax, see docs/flows.md. Not implemented yet.
+id: service-tags
+name: Tags and hashes from filenames
+trigger:
+  on: asset.uploaded
+
+steps:
+  - id: hash-original
+    use: hash
+    with:
+      source: original          # bytes as received from the client
+      algorithms: [md5, sha1, sha256]
+
+  - id: hash-stored
+    use: hash
+    with:
+      source: stored            # bytes as stored by Immich (after conversion)
+      algorithms: [md5, sha1, sha256]
+
+  - id: parse
+    use: switch
+    cases:
+      - if: 'asset.originalFileName startsWith "SERVICE-A_"'
+        steps:
+          - id: a
+            use: regex
+            with:
+              input: '{{ asset.baseName }}'
+              pattern: '^SERVICE-A_(?P<id>[^_]+)_(?P<tags>.+)$'
+          - use: tag.assign
+            with:
+              tags: '{{ split(steps.a.tags, "_") | map("service-a/" + #) }}'
+
+      - if: 'asset.originalFileName startsWith "SERVICE-B_"'
+        steps:
+          - id: b
+            use: regex
+            with:
+              input: '{{ asset.baseName }}'
+              pattern: '^SERVICE-B_(?P<id>[^_]+)_(?P<tags>.+)$'
+          - use: tag.assign
+            with:
+              tags: '{{ split(steps.b.tags, "_") | map("service-b/" + #) }}'
+
+  - use: tag.assign
+    with:
+      tags:
+        - 'hashes/MD5/ORIGINAL/{{ steps["hash-original"].md5 }}'
+        - 'hashes/SHA1/ORIGINAL/{{ steps["hash-original"].sha1 }}'
+        - 'hashes/MD5/STORED/{{ steps["hash-stored"].md5 }}'
+        - 'hashes/SHA1/STORED/{{ steps["hash-stored"].sha1 }}'
