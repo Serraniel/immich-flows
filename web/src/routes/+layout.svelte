@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import favicon from '#lib/assets/favicon.svg';
+	import NotConnected from '#lib/NotConnected.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
@@ -29,6 +31,10 @@
 
 <main>
 	{#if data.user}
+		<!-- Overview has its own connection section. -->
+		{#if page.url.pathname.replace(/\/$/, '') !== resolve('/').replace(/\/$/, '')}
+			<NotConnected />
+		{/if}
 		{@render children()}
 	{:else}
 		<p>

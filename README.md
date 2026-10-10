@@ -40,7 +40,7 @@ Image tags: `latest`, `X.Y.Z`, `X.Y`, `edge` (main branch).
 
 ## Setup
 
-Open `https://<your-immich>/_flows/` and click **Connect**. This creates an Immich API key for immich-flows with only the permissions flows need (assets: read/update/download, tags, duplicates: read). Flows only run for connected users.
+Open `https://<your-immich>/_flows/` and click **Connect**. This creates an Immich API key for immich-flows with only the permissions flows need (assets: read/update/download, tags, duplicates: read). Flows only run for connected users; the UI shows a warning until you connect, and the log notes skipped runs once per user.
 
 ## Configuration
 
