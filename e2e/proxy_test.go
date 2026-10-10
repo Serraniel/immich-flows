@@ -3,12 +3,16 @@
 package e2e
 
 import (
+	"bufio"
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -85,5 +89,32 @@ func TestTagsThroughProxy(t *testing.T) {
 	c.json(http.MethodGet, "/api/assets/"+up.ID, nil, &asset)
 	if len(asset.Tags) != 1 || asset.Tags[0].Value != "e2e/a/b" {
 		t.Errorf("asset tags: %+v", asset.Tags)
+	}
+}
+
+// Immich's web UI uses socket.io over WebSocket; upgrades must pass through the proxy.
+func TestWebSocketUpgrade(t *testing.T) {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn, err := net.DialTimeout("tcp", u.Host, 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.Close() }()
+	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
+	_, err = fmt.Fprintf(conn, "GET /api/socket.io/?EIO=4&transport=websocket HTTP/1.1\r\nHost: %s\r\n"+
+		"Upgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n", u.Host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusSwitchingProtocols {
+		t.Fatalf("status %d", res.StatusCode)
 	}
 }
