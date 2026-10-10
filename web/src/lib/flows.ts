@@ -56,6 +56,11 @@ export async function checkFlow(source: string, yaml: string): Promise<Problem[]
 
 export const setEnabled = (source: string, enabled: boolean) =>
 	api<void>(file(source), { method: 'PATCH', body: JSON.stringify({ enabled }) });
+export const runOnAll = (flowId: string) =>
+	api<{ queued: number }>(`flows/${encodeURIComponent(flowId)}/run`, {
+		method: 'POST',
+		body: JSON.stringify({ all: true })
+	});
 export const deleteFlow = (source: string) => api<void>(file(source), { method: 'DELETE' });
 
 // offset converts a 1-based line and column to an offset in text, clamped to its length.
