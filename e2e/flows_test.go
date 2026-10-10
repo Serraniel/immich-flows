@@ -173,3 +173,45 @@ func TestManualRunBackfill(t *testing.T) {
 		t.Errorf("invalid id: %d", s)
 	}
 }
+
+func TestRunHistory(t *testing.T) {
+	c := adminClient(t)
+	c.connect()
+	id := c.upload(fmt.Sprintf("SERVICE-A_%d_history.jpg", time.Now().UnixNano()), randomJPEG(t)).ID
+	c.waitTags(id, []string{"e2e-service-a/history"})
+
+	type step struct {
+		Use    string `json:"use"`
+		Status string `json:"status"`
+	}
+	type run struct {
+		ID      int64  `json:"id"`
+		AssetID string `json:"assetId"`
+		Status  string `json:"status"`
+		Steps   []step `json:"steps"`
+	}
+	var runs []run
+	if s := c.json(http.MethodGet, "/_flows/api/runs?flow=e2e-service-tags&status=success", nil, &runs); s != http.StatusOK {
+		t.Fatalf("list: %d", s)
+	}
+	var mine *run
+	for i := range runs {
+		if runs[i].AssetID == id {
+			mine = &runs[i]
+		}
+	}
+	if mine == nil {
+		t.Fatalf("run for %s not listed: %+v", id, runs)
+	}
+	var detail run
+	c.json(http.MethodGet, fmt.Sprintf("/_flows/api/runs/%d", mine.ID), nil, &detail)
+	if len(detail.Steps) != 2 || detail.Steps[0].Use != "regex" || detail.Steps[1].Status != "success" {
+		t.Errorf("detail: %+v", detail)
+	}
+	if s := c.json(http.MethodPost, fmt.Sprintf("/_flows/api/runs/%d/retry", mine.ID), nil, nil); s != http.StatusAccepted {
+		t.Errorf("retry: %d", s)
+	}
+	if s := c.json(http.MethodGet, "/_flows/api/runs/999999", nil, nil); s != http.StatusNotFound {
+		t.Errorf("missing run: %d", s)
+	}
+}

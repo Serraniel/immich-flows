@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
 
@@ -12,7 +13,11 @@
 
 <!-- Links to "/" and "/auth/login" point to Immich itself, outside this app. -->
 <header>
-	<strong>immich-flows</strong>
+	<nav>
+		<strong>immich-flows</strong>
+		<a href={resolve('/')}>Overview</a>
+		<a href={resolve('/runs')}>Runs</a>
+	</nav>
 	<span>
 		{#if data.user}{data.user.name}{/if}
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
@@ -44,6 +49,11 @@
 		align-items: center;
 		padding: 0.75rem 1rem;
 		border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+	}
+	nav {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
 	}
 	header span {
 		display: flex;
