@@ -23,6 +23,7 @@ type Deps struct {
 	Flows  FlowLister
 	Runner Runner
 	Jobs   engine.Enqueuer
+	Runs   RunLog
 	Log    *slog.Logger
 }
 
@@ -34,6 +35,7 @@ type Server struct {
 	flows     FlowLister
 	runner    Runner
 	jobs      engine.Enqueuer
+	runLog    RunLog
 	log       *slog.Logger
 }
 
@@ -44,7 +46,7 @@ type FlowLister interface {
 
 // New returns the API handler mounted at prefix (e.g. "/_flows/api").
 func New(prefix string, d Deps) http.Handler {
-	s := &Server{auth: d.Auth, conn: d.Conn, immichURL: d.Immich, flows: d.Flows, runner: d.Runner, jobs: d.Jobs, log: d.Log}
+	s := &Server{auth: d.Auth, conn: d.Conn, immichURL: d.Immich, flows: d.Flows, runner: d.Runner, jobs: d.Jobs, runLog: d.Runs, log: d.Log}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+prefix+"/me", s.me)
 	mux.HandleFunc("GET "+prefix+"/connection", s.connectionStatus)
@@ -54,6 +56,9 @@ func New(prefix string, d Deps) http.Handler {
 	mux.HandleFunc("POST "+prefix+"/tags/bulk", s.bulkTags)
 	mux.Handle("GET "+prefix+"/flows", auth.RequireAdmin(http.HandlerFunc(s.listFlows)))
 	mux.HandleFunc("POST "+prefix+"/flows/{id}/run", s.runFlow)
+	mux.HandleFunc("GET "+prefix+"/runs", s.listRuns)
+	mux.HandleFunc("GET "+prefix+"/runs/{id}", s.getRun)
+	mux.HandleFunc("POST "+prefix+"/runs/{id}/retry", s.retryRun)
 	mux.HandleFunc(prefix+"/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, "not found")
 	})

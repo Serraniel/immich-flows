@@ -214,9 +214,13 @@ type run struct {
 }
 
 func (r *run) start(ctx context.Context) error {
+	reqJSON, err := json.Marshal(r.req)
+	if err != nil {
+		return err
+	}
 	res, err := r.e.db.ExecContext(ctx,
-		`INSERT INTO runs (flow_id, event_type, user_id, asset_id, status, started_at) VALUES (?, ?, ?, ?, 'running', ?)`,
-		r.flow.ID, r.req.Event.Type, r.req.Event.UserID, nullable(r.req.AssetID), r.e.now().UnixMilli())
+		`INSERT INTO runs (flow_id, event_type, user_id, asset_id, status, started_at, request) VALUES (?, ?, ?, ?, 'running', ?, ?)`,
+		r.flow.ID, r.req.Event.Type, r.req.Event.UserID, nullable(r.req.AssetID), r.e.now().UnixMilli(), string(reqJSON))
 	if err != nil {
 		return err
 	}
