@@ -24,6 +24,7 @@ var Triggers = []string{
 	"tag.assigned",
 	"tag.removed",
 	"manual",
+	"webhook",
 }
 
 // UseSwitch is the built-in branching step.

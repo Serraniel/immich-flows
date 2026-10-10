@@ -122,6 +122,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | `duplicates.resolved` | one run per kept asset. `trigger.data`: `duplicateId`, `kept`, `trashed` (asset IDs), `assets` (snapshots before resolution), `tags` (asset ID → tag values before resolution). Trashed assets also emit `asset.trashed` |
 | `tag.assigned` / `tag.removed` | user changed tags through Immich. One event per tag, one run per asset. `trigger.data.tag`: `id`, `value`, `name`. Tag changes made by flows do not trigger these (no loops) |
 | `manual` | only via [manual runs](#manual-runs-and-backfill); any flow can be run manually |
+| `webhook` | `POST /_flows/api/flows/<id>/webhook` with header `X-Immich-Flows-Token` (per user and flow, shown at `/_flows/`). `trigger.data.body`: the JSON body; a top-level `assetIds` list starts one run per asset, otherwise one run without asset. Runs act as the token's user |
 | `schedule` | planned (#35) |
 
 ## Steps

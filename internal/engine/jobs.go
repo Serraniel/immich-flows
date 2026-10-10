@@ -65,5 +65,24 @@ func (e *Engine) RunFlow(ctx context.Context, q Enqueuer, flowID, userID string,
 	return len(assetIDs), nil
 }
 
+// Trigger starts one flow for an event: one run per asset, or one without an asset.
+// The flow must be enabled and triggered by ev.Type.
+func (e *Engine) Trigger(ctx context.Context, q Enqueuer, flowID string, ev events.Event) (int, error) {
+	f, ok := e.flows.Flow(flowID)
+	if !ok || !f.IsEnabled() || f.Trigger.On != ev.Type {
+		return 0, ErrUnknownFlow
+	}
+	ids := ev.AssetIDs
+	if len(ids) == 0 {
+		ids = []string{""}
+	}
+	for i, id := range ids {
+		if _, err := q.Enqueue(ctx, JobRun, RunRequest{FlowID: flowID, Event: ev, AssetID: id}); err != nil {
+			return i, err
+		}
+	}
+	return len(ids), nil
+}
+
 // ErrUnknownFlow is returned for flow IDs that are not loaded or invalid.
 var ErrUnknownFlow = errors.New("unknown flow")

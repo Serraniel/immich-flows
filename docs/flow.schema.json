@@ -565,7 +565,8 @@
             "duplicates.resolved",
             "tag.assigned",
             "tag.removed",
-            "manual"
+            "manual",
+            "webhook"
           ],
           "type": "string"
         }

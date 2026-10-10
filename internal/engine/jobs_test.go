@@ -61,3 +61,30 @@ func TestRunFlow(t *testing.T) {
 		t.Fatalf("jobs %v", s)
 	}
 }
+
+type recordQueue struct{ reqs []RunRequest }
+
+func (r *recordQueue) Enqueue(_ context.Context, kind string, p any) (int64, error) {
+	if kind == JobRun {
+		r.reqs = append(r.reqs, p.(RunRequest))
+	}
+	return int64(len(r.reqs)), nil
+}
+
+func TestTrigger(t *testing.T) {
+	h := newHarness(t, parse(t, "id: w\ntrigger: {on: webhook}\nsteps: [{use: record}]\n"),
+		parse(t, "id: m\ntrigger: {on: manual}\nsteps: [{use: record}]\n"))
+	q := &recordQueue{}
+	ctx := context.Background()
+	ev := events.Event{Type: events.Webhook, UserID: "u"}
+	if _, err := h.e.Trigger(ctx, q, "m", ev); !errors.Is(err, ErrUnknownFlow) {
+		t.Errorf("other trigger: %v", err)
+	}
+	if n, err := h.e.Trigger(ctx, q, "w", ev); err != nil || n != 1 || q.reqs[0].AssetID != "" {
+		t.Errorf("no assets: %d %v %+v", n, err, q.reqs)
+	}
+	ev.AssetIDs = []string{"a", "b"}
+	if n, err := h.e.Trigger(ctx, q, "w", ev); err != nil || n != 2 || q.reqs[2].AssetID != "b" {
+		t.Errorf("assets: %d %v %+v", n, err, q.reqs)
+	}
+}

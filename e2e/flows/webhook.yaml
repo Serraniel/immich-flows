@@ -1,0 +1,7 @@
+id: e2e-webhook
+trigger:
+  on: webhook
+steps:
+  - use: tag.assign
+    with:
+      tags: 'e2e-webhook/{{ trigger.data.body.label }}'

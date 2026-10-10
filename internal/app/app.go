@@ -73,6 +73,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 
 	seen := &webhook.Seen{DB: db}
 	webhook.Register(jobs, seen, publish)
+	flowHook := &webhook.FlowHandler{Key: key, Runner: eng, Jobs: jobs, Log: log}
 	hook := &webhook.Handler{Key: key, Jobs: jobs, Wants: eng.Wants, Log: log}
 
 	hookDeps := hooks.Deps{
@@ -113,7 +114,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           routes(px, hook, api.New(proxy.Prefix+"/api", api.Deps{Immich: cfg.Immich, Auth: users, Conn: conn, Flows: flowDir, Schema: reg, Runner: eng, Jobs: jobs, Runs: runs.New(db), WebhookKey: key, Log: log})),
+		Handler:           routes(px, hook, flowHook, api.New(proxy.Prefix+"/api", api.Deps{Immich: cfg.Immich, Auth: users, Conn: conn, Flows: flowDir, Schema: reg, Runner: eng, Jobs: jobs, Runs: runs.New(db), WebhookKey: key, Log: log})),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	errc := make(chan error, 1)
@@ -146,9 +147,11 @@ func userClients(conn *connect.Manager) engine.ClientFunc {
 	}
 }
 
-func routes(px, hook, apiHandler http.Handler) http.Handler {
+func routes(px, hook, flowHook, apiHandler http.Handler) http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("POST "+proxy.Prefix+"/api/webhook", hook) // authenticated by token, not by Immich session
+	// Authenticated by token, not by Immich session.
+	mux.Handle("POST "+proxy.Prefix+"/api/webhook", hook)
+	mux.Handle("POST "+proxy.Prefix+"/api/flows/{id}/webhook", flowHook)
 	mux.Handle(proxy.Prefix+"/", web.Handler(proxy.Prefix))
 	mux.Handle(proxy.Prefix+"/api/", apiHandler)
 	mux.Handle("GET "+proxy.Prefix+"/healthz", px)

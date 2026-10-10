@@ -2,11 +2,18 @@
 	import { api } from './api';
 
 	type Info = { path: string; headerName: string; headerValue: string };
+	type FlowHook = Info & { flowId: string; name?: string };
 	let info = $state<Info>();
+	let hooks = $state<FlowHook[]>([]);
 	let error = $state('');
+	const fail = (e: unknown) => (error = e instanceof Error ? e.message : String(e));
 	api<Info>('webhook')
 		.then((i) => (info = i))
-		.catch((e) => (error = e instanceof Error ? e.message : String(e)));
+		.catch(fail);
+	api<FlowHook[]>('flow-webhooks')
+		.then((h) => (hooks = h))
+		.catch(fail);
+	const origin = typeof location === 'undefined' ? '' : location.origin;
 </script>
 
 <section>
@@ -35,6 +42,21 @@
 	{/if}
 </section>
 
+{#if hooks.length}
+	<section>
+		<h2>Webhook flows</h2>
+		<p>
+			Start these flows with a JSON POST, e.g. from scripts or home automation. The body is
+			<code>trigger.data.body</code>; <code>assetIds</code> starts one run per asset. Runs act as you.
+		</p>
+		{#each hooks as h (h.flowId)}
+			<h3>{h.name ?? h.flowId}</h3>
+			<pre>curl -X POST -H '{h.headerName}: {h.headerValue}' -H 'Content-Type: application/json' \
+  -d '&#123;"assetIds": []&#125;' {origin}{h.path}</pre>
+		{/each}
+	</section>
+{/if}
+
 <style>
 	dl {
 		display: grid;
@@ -43,6 +65,12 @@
 	}
 	dt {
 		font-weight: 600;
+	}
+	pre {
+		white-space: pre-wrap;
+		word-break: break-all;
+		background: color-mix(in srgb, currentColor 6%, transparent);
+		padding: 0.5rem;
 	}
 	.secret {
 		word-break: break-all;

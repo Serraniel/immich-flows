@@ -147,3 +147,23 @@ steps:
       url: https://ntfy.sh/my-immich
       body: 'New video: {{ asset.originalFileName }}'
 ```
+
+## Tag from a script
+
+Token and URL for each webhook flow: `/_flows/`.
+
+```yaml
+id: tag-from-script
+trigger:
+  on: webhook
+steps:
+  - use: tag.assign
+    with:
+      tags: '{{ trigger.data.body.tags }}'
+```
+
+```sh
+curl -X POST -H 'X-Immich-Flows-Token: <token>' -H 'Content-Type: application/json' \
+  -d '{"assetIds": ["<asset id>"], "tags": ["album-print/2026"]}' \
+  https://photos.example.com/_flows/api/flows/tag-from-script/webhook
+```

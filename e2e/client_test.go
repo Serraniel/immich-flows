@@ -87,6 +87,24 @@ func (c *client) json(method, path string, in, out any) int {
 	return c.do(method, path, body, "application/json", out)
 }
 
+// jsonHeader posts JSON with one extra header and no API key.
+func (c *client) jsonHeader(method, path string, in any, name, value string) int {
+	c.t.Helper()
+	b, _ := json.Marshal(in)
+	req, err := http.NewRequest(method, baseURL+path, bytes.NewReader(b))
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(name, value)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	_ = res.Body.Close()
+	return res.StatusCode
+}
+
 func waitReady() error {
 	deadline := time.Now().Add(3 * time.Minute)
 	for time.Now().Before(deadline) {
