@@ -73,7 +73,7 @@ Invalid files are logged and listed with their error at `GET /_flows/api/flows` 
 
 Flows run for all users who connected immich-flows (see README).
 
-Admins can edit files through the API (the UI uses it). `{source}` is the path listed by `GET flows`.
+Admins can edit files in the UI (`/_flows/flows`: list, enable/disable, import/export, YAML editor with completion and live validation) or through the API. `{source}` is the path listed by `GET flows`.
 
 | Request | |
 | --- | --- |
