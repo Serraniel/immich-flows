@@ -12,6 +12,7 @@
 	let saved = $derived(data.yaml);
 	let name = $derived(data.source || 'my-flow.yaml');
 	let error = $state('');
+	let mode = $state<'yaml' | 'visual'>('yaml');
 	let busy = $state(false);
 	let dirty = $derived(yaml !== saved);
 
@@ -61,15 +62,28 @@
 
 	{#if error}<pre role="alert" class="error">{error}</pre>{/if}
 
-	{#key data.source}
-		<FlowEditor bind:value={yaml} source={name} schema={data.schema} onsave={save} />
+	<div class="tabs" role="tablist">
+		<button role="tab" aria-selected={mode === 'yaml'} onclick={() => (mode = 'yaml')}>YAML</button>
+		<button role="tab" aria-selected={mode === 'visual'} onclick={() => (mode = 'visual')}>
+			Visual
+		</button>
+	</div>
+
+	{#key data.source + mode}
+		{#if mode === 'yaml'}
+			<FlowEditor bind:value={yaml} source={name} schema={data.schema} onsave={save} />
+			<p>
+				<small
+					>Ctrl+Space completes keys and values. Problems are checked on the server as you type;
+					invalid flows are not saved.</small
+				>
+			</p>
+		{:else if data.schema}
+			{#await import('#lib/Designer.svelte') then { default: Designer }}
+				<Designer bind:value={yaml} source={name} schema={data.schema} />
+			{/await}
+		{/if}
 	{/key}
-	<p>
-		<small
-			>Ctrl+Space completes keys and values. Problems are checked on the server as you type; invalid
-			flows are not saved.</small
-		>
-	</p>
 {/if}
 
 <style>
@@ -82,6 +96,15 @@
 	h1 {
 		font-size: 1.25rem;
 		margin: 0;
+	}
+	.tabs {
+		display: flex;
+		gap: 0.25rem;
+		margin-bottom: 0.5rem;
+	}
+	.tabs [aria-selected='true'] {
+		font-weight: 600;
+		text-decoration: underline;
 	}
 	.error {
 		color: #cf222e;
