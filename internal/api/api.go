@@ -12,6 +12,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/connect"
 	"github.com/serraniel/immich-flows/internal/engine"
 	"github.com/serraniel/immich-flows/internal/immich"
+	"github.com/serraniel/immich-flows/internal/webhook"
 )
 
 // Deps are the API's dependencies.
@@ -24,28 +25,32 @@ type Deps struct {
 	Runner Runner
 	Jobs   engine.Enqueuer
 	Runs   RunLog
-	Log    *slog.Logger
+	// WebhookKey derives per-user tokens for Immich workflow webhooks.
+	WebhookKey []byte
+	Log        *slog.Logger
 }
 
 // Server serves the API.
 type Server struct {
-	auth      *auth.Authenticator
-	conn      *connect.Manager
-	immichURL *url.URL
-	flows     FlowStore
-	schema    Schemer
-	runner    Runner
-	jobs      engine.Enqueuer
-	runLog    RunLog
-	log       *slog.Logger
+	auth       *auth.Authenticator
+	conn       *connect.Manager
+	immichURL  *url.URL
+	flows      FlowStore
+	schema     Schemer
+	runner     Runner
+	jobs       engine.Enqueuer
+	runLog     RunLog
+	webhookKey []byte
+	log        *slog.Logger
 }
 
 // New returns the API handler mounted at prefix (e.g. "/_flows/api").
 func New(prefix string, d Deps) http.Handler {
-	s := &Server{auth: d.Auth, conn: d.Conn, immichURL: d.Immich, flows: d.Flows, schema: d.Schema, runner: d.Runner, jobs: d.Jobs, runLog: d.Runs, log: d.Log}
+	s := &Server{auth: d.Auth, conn: d.Conn, immichURL: d.Immich, flows: d.Flows, schema: d.Schema, runner: d.Runner, jobs: d.Jobs, runLog: d.Runs, webhookKey: d.WebhookKey, log: d.Log}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+prefix+"/me", s.me)
 	mux.HandleFunc("GET "+prefix+"/connection", s.connectionStatus)
+	mux.HandleFunc("GET "+prefix+"/webhook", s.webhookInfo)
 	mux.HandleFunc("POST "+prefix+"/connection", s.connect)
 	mux.HandleFunc("DELETE "+prefix+"/connection", s.disconnect)
 	mux.HandleFunc("POST "+prefix+"/tags/move", s.moveTag)
@@ -69,6 +74,15 @@ func New(prefix string, d Deps) http.Handler {
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, auth.FromContext(r.Context()))
+}
+
+// webhookInfo returns the caller's settings for an Immich workflow "Trigger Webhook" step.
+func (s *Server) webhookInfo(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{
+		"path":        r.URL.Path,
+		"headerName":  webhook.Header,
+		"headerValue": webhook.Token(s.webhookKey, auth.FromContext(r.Context()).ID),
+	})
 }
 
 func (s *Server) connectionStatus(w http.ResponseWriter, r *http.Request) {

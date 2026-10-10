@@ -5,10 +5,10 @@
 | Option | Pre-conversion access | Triggers | Verdict |
 | --- | --- | --- | --- |
 | **Reverse proxy** | yes, streams the upload body | any API call that passes through | **primary** |
-| Immich native workflows + WASM plugin | no, sees stored file only | `AssetCreate`, `AssetMetadataExtraction`, `AssetTagged` | **secondary**: event bridge for assets not uploaded via the proxy |
-| Polling / sync API | no | everything, delayed | fallback for server-side deletes (trash purge) |
+| Immich workflows, core step *Trigger Webhook* | no, sees stored file only | `AssetCreate`, `AssetMetadataExtraction`, `AssetTagged` (no tag details) | **secondary**: `asset.uploaded` for assets not uploaded via the proxy |
+| Polling (the sync API rejects API keys) | no | trash contents, delayed | server-side deletes (trash purge) |
 
-Native workflows are still in preview, plugins only get a few host functions (`bulkTagAssets`, albums, `httpRequest`), and they have no trigger for delete or duplicate resolution. A proxy alone misses external libraries and server jobs. So immich-flows uses both.
+Plugins only get a few host functions (`bulkTagAssets`, albums, `httpRequest`) and there is no trigger for delete or duplicate resolution. A proxy alone misses external libraries and server jobs. So immich-flows uses all three. The built-in webhook step is enough as a bridge; no custom WASM plugin is needed.
 
 ## Components
 
@@ -19,7 +19,7 @@ client ──► immich-flows :2283 ──► [optional converter, e.g. upload o
               ├─ store (SQLite, /data)
               ├─ web UI + API under /_flows
               └─ Immich API client ──────────────────────────────────────────► immich-server
-immich-server ── native workflow step "immich-flows#emit" (WASM) ── HTTP ──► immich-flows
+immich-server ── workflow step "Trigger Webhook" (core plugin) ── HTTP ──► immich-flows /_flows/api/webhook
 ```
 
 - **Proxy**: `httputil.ReverseProxy`, streaming, WebSocket passthrough. Only matched routes are hooked; everything else is untouched.
