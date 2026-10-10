@@ -25,6 +25,7 @@ immich-server ── native workflow step "immich-flows#emit" (WASM) ── HTTP
 - **Proxy**: `httputil.ReverseProxy`, streaming, WebSocket passthrough. Only matched routes are hooked; everything else is untouched.
 - **Upload hook**: tees the multipart body; the `assetData` part is hashed while bytes are forwarded. No buffering, no re-encoding.
 - **Engine**: flows are DAGs of steps. Runs are queued in SQLite, executed asynchronously with retries, so uploads are never delayed. Pre-hooks that must block (e.g. duplicate resolution) have a timeout and fail open.
+- **Trash reconciler**: Immich deletes assets on its own (trash auto-purge) and its sync API rejects API keys. Every `IMMICH_FLOWS_TRASH_INTERVAL` the trash of each connected user is listed and stored with a snapshot; an asset that leaves the trash and no longer exists emits `asset.deleted`. Deletes and restores seen by the proxy are dropped from tracking first, so nothing is reported twice. Only active if a flow uses `asset.deleted`.
 - **Identity**: Immich tags are per user. Each user connects once via the UI; immich-flows creates a scoped Immich API key on their behalf and stores it encrypted. Runs act as the asset owner.
 - **UI/API auth**: reuses the Immich session (cookie, bearer token or `x-api-key`), validated against `/api/users/me` and cached for 1 minute. Admin-only routes return 403 for other users.
 

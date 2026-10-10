@@ -25,6 +25,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/runs"
 	"github.com/serraniel/immich-flows/internal/steps"
 	"github.com/serraniel/immich-flows/internal/store"
+	"github.com/serraniel/immich-flows/internal/trashwatch"
 	"github.com/serraniel/immich-flows/internal/web"
 )
 
@@ -62,12 +63,26 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	}, log)
 	eng.Register(jobs)
 
+	publish := func(ctx context.Context, ev events.Event) error { return engine.Publish(ctx, jobs, ev) }
+	trash := trashwatch.New(trashwatch.Deps{
+		DB: db, Users: conn.Users, Clients: conn.Client, Publish: publish, Wants: eng.Wants, Log: log,
+	})
+	go trash.Run(ctx, cfg.TrashInterval)
+
 	hookDeps := hooks.Deps{
-		Users:   users,
-		Publish: func(ctx context.Context, ev events.Event) error { return engine.Publish(ctx, jobs, ev) },
-		Log:     log,
-		Immich:  cfg.Immich,
-		Wants:   eng.Wants,
+		Users: users,
+		Publish: func(ctx context.Context, ev events.Event) error {
+			if ev.Type == events.AssetDeleted || ev.Type == events.AssetRestored {
+				// Reported by the proxy; the trash reconciler must not report it again.
+				if err := trash.Forget(ctx, ev.UserID, ev.AssetIDs); err != nil {
+					log.Warn("trash reconcile: forget", "err", err)
+				}
+			}
+			return publish(ctx, ev)
+		},
+		Log:    log,
+		Immich: cfg.Immich,
+		Wants:  eng.Wants,
 	}
 	hookList := []proxy.Hook{hooks.Upload(hookDeps), hooks.Duplicates(hookDeps)}
 	hookList = append(hookList, hooks.Trash(hookDeps)...)

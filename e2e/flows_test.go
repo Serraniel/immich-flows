@@ -215,3 +215,70 @@ func TestRunHistory(t *testing.T) {
 		t.Errorf("missing run: %d", s)
 	}
 }
+
+// purgeRuns returns the e2e-purged runs for an asset with their log messages.
+func (c *client) purgeRuns(assetID string) []string {
+	c.t.Helper()
+	var runs []struct {
+		ID      int64  `json:"id"`
+		AssetID string `json:"assetId"`
+	}
+	c.json(http.MethodGet, "/_flows/api/runs?flow=e2e-purged&status=success", nil, &runs)
+	var msgs []string
+	for _, r := range runs {
+		if r.AssetID != assetID {
+			continue
+		}
+		var detail struct {
+			Steps []struct {
+				Output struct {
+					Message string `json:"message"`
+				} `json:"output"`
+			} `json:"steps"`
+		}
+		c.json(http.MethodGet, fmt.Sprintf("/_flows/api/runs/%d", r.ID), nil, &detail)
+		if len(detail.Steps) == 1 {
+			msgs = append(msgs, detail.Steps[0].Output.Message)
+		}
+	}
+	return msgs
+}
+
+// Assets deleted by Immich itself (here: directly, bypassing the proxy, like trash auto-purge)
+// are detected by trash reconciliation. Deletes through the proxy are reported once.
+func TestServerSideDelete(t *testing.T) {
+	c := adminClient(t)
+	c.connect()
+	name := fmt.Sprintf("PURGE_%d.jpg", time.Now().UnixNano())
+	purged := c.upload(name, randomJPEG(t)).ID
+	viaProxy := c.upload("PURGE_proxy_"+name, randomJPEG(t)).ID
+	c.waitIdle()
+	if s := c.json(http.MethodDelete, "/api/assets", map[string]any{"ids": []string{purged, viaProxy}}, nil); s != http.StatusNoContent {
+		t.Fatalf("trash: %d", s)
+	}
+	time.Sleep(5 * time.Second) // reconcile interval is 2s in the e2e stack: both are tracked now
+
+	if s := c.direct().json(http.MethodDelete, "/api/assets", map[string]any{"ids": []string{purged}, "force": true}, nil); s != http.StatusNoContent {
+		t.Fatalf("direct delete: %d", s)
+	}
+	if s := c.json(http.MethodDelete, "/api/assets", map[string]any{"ids": []string{viaProxy}, "force": true}, nil); s != http.StatusNoContent {
+		t.Fatalf("proxy delete: %d", s)
+	}
+
+	deadline := time.Now().Add(60 * time.Second)
+	var msgs []string
+	for time.Now().Before(deadline) {
+		if msgs = c.purgeRuns(purged); len(msgs) > 0 {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	if len(msgs) != 1 || msgs[0] != name+" reconcile" {
+		t.Fatalf("server-side delete runs: %q", msgs)
+	}
+
+	time.Sleep(5 * time.Second) // give the reconciler a chance to report the proxy delete again
+	if msgs := c.purgeRuns(viaProxy); len(msgs) != 1 || msgs[0] != "PURGE_proxy_"+name+" proxy" {
+		t.Errorf("proxy delete runs: %q", msgs)
+	}
+}

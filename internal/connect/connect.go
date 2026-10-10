@@ -118,6 +118,24 @@ func (m *Manager) Disconnect(ctx context.Context, userID string, caller immich.A
 	return err
 }
 
+// Users returns the IDs of all connected users.
+func (m *Manager) Users(ctx context.Context) ([]string, error) {
+	rows, err := m.db.QueryContext(ctx, `SELECT user_id FROM connections ORDER BY user_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
 // Client returns an Immich client acting as userID.
 func (m *Manager) Client(ctx context.Context, userID string) (*immich.ClientWithResponses, error) {
 	var enc []byte
