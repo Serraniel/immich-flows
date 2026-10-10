@@ -9,7 +9,7 @@ Workflow automation for [Immich](https://immich.app). Runs as a drop-in proxy in
 - Triggers: asset uploaded, trashed/deleted, duplicates resolved, tag assigned/removed
 - Actions: assign/remove/read tags, compute file hashes (MD5, SHA-1, SHA-256, SHA-512), parse filenames
 - Hashes the **original** upload before any converter (e.g. [immich-upload-optimizer](https://github.com/miguelangel-nubla/immich-upload-optimizer)) touches it
-- Flow editor: YAML with completion and validation (visual editor planned)
+- Flow editor: YAML with completion and validation, or visual; both edit the same file
 - Bulk tag tools: rename, move (`XX` → `YY/XX`), merge
 - Targets the latest Immich major only (currently v3)
 

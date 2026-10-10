@@ -2,7 +2,7 @@
 
 > Draft. Syntax may change until v1.0.
 
-A flow is one YAML document: a trigger and a list of steps. The visual editor reads and writes the same format; node positions go into `ui:`.
+A flow is one YAML document: a trigger and a list of steps. The visual editor (UI → Flows → Visual) edits the same document: untouched parts keep their comments, node positions go into `ui.positions`.
 
 ```yaml
 id: example
