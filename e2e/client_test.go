@@ -27,14 +27,30 @@ var baseURL = func() string {
 	return "http://localhost:22830"
 }()
 
+// immichURL reaches Immich directly, bypassing immich-flows.
+var immichURL = func() string {
+	if u := os.Getenv("E2E_IMMICH_URL"); u != "" {
+		return u
+	}
+	return "http://localhost:22831"
+}()
+
 type client struct {
 	t      *testing.T
 	apiKey string
+	base   string // default baseURL
 }
+
+// direct returns a client with the same credentials that talks to Immich directly.
+func (c *client) direct() *client { return &client{t: c.t, apiKey: c.apiKey, base: immichURL} }
 
 func (c *client) do(method, path string, body io.Reader, contentType string, out any) int {
 	c.t.Helper()
-	req, err := http.NewRequest(method, baseURL+path, body)
+	base := c.base
+	if base == "" {
+		base = baseURL
+	}
+	req, err := http.NewRequest(method, base+path, body)
 	if err != nil {
 		c.t.Fatal(err)
 	}

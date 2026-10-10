@@ -1,0 +1,8 @@
+id: e2e-purged
+trigger:
+  on: asset.deleted
+  if: 'asset.originalFileName startsWith "PURGE_"'
+steps:
+  - use: log
+    with:
+      message: '{{ asset.originalFileName }} {{ trigger.data?.source ?? "proxy" }}'

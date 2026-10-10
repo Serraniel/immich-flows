@@ -117,7 +117,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | --- | --- |
 | `asset.uploaded` | `trigger.data.original` (`filename`, `size`, `md5`, `sha1`, `sha256`, `sha512` of the bytes the client sent), `trigger.data.status` (`created`/`duplicate`) |
 | `asset.trashed` | trashed via `DELETE /api/assets` |
-| `asset.deleted` | permanently deleted (`force`, or emptied trash). `asset` comes from a snapshot taken before deletion (max 500 assets), otherwise only `asset.id` |
+| `asset.deleted` | permanently deleted through immich-flows (`force`, or emptied trash), or by Immich itself (trash auto-purge, other clients bypassing the proxy; detected every `IMMICH_FLOWS_TRASH_INTERVAL`, only for assets seen in the trash, `trigger.data.source` is `reconcile`). `asset` comes from a snapshot taken before deletion (max 500 assets per request), otherwise only `asset.id` |
 | `asset.restored` | restored from trash |
 | `duplicates.resolved` | one run per kept asset. `trigger.data`: `duplicateId`, `kept`, `trashed` (asset IDs), `assets` (snapshots before resolution), `tags` (asset ID → tag values before resolution). Trashed assets also emit `asset.trashed` |
 | `tag.assigned` / `tag.removed` | user changed tags through Immich. One event per tag, one run per asset. `trigger.data.tag`: `id`, `value`, `name`. Tag changes made by flows do not trigger these (no loops) |

@@ -10,6 +10,7 @@ services:
       IMMICH_FLOWS_UPSTREAM_URL: http://immich-server:2283
       IMMICH_FLOWS_LOG_LEVEL: debug
       IMMICH_FLOWS_FLOWS_DIR: /flows
+      IMMICH_FLOWS_TRASH_INTERVAL: 2s
     volumes:
       - ./flows:/flows:ro
     tmpfs:
@@ -20,6 +21,8 @@ services:
 
   immich-server:
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-v3}
+    ports:
+      - "${E2E_IMMICH_PORT:-22831}:2283" # direct access for tests that bypass the proxy
     environment:
       DB_PASSWORD: postgres
       DB_USERNAME: postgres
