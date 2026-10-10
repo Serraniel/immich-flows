@@ -46,7 +46,8 @@ type uploadResult struct {
 }
 
 // Upload hashes the original file of POST /api/assets while it streams to the upstream and
-// publishes asset.uploaded once Immich returns the asset ID.
+// publishes asset.uploaded once Immich returns the asset ID. If hashing fails, the event is
+// published without the original hashes.
 func Upload(d Deps) proxy.Hook {
 	return proxy.Hook{
 		Route: "POST /api/assets",
@@ -68,8 +69,7 @@ func Upload(d Deps) proxy.Hook {
 			return nil
 		},
 		Post: func(ex *proxy.Exchange) {
-			res, _ := ex.Get(uploadKey{}).(*uploadResult)
-			if res == nil || (ex.Status != http.StatusCreated && ex.Status != http.StatusOK) {
+			if ex.Status != http.StatusCreated && ex.Status != http.StatusOK {
 				return
 			}
 			var body struct {
@@ -80,21 +80,28 @@ func Upload(d Deps) proxy.Hook {
 				d.Log.Warn("upload response without asset id", "status", ex.Status)
 				return
 			}
-			select {
-			case <-res.done:
-			case <-time.After(30 * time.Second):
-				d.Log.Error("upload hashing did not finish", "asset", body.ID)
-				return
-			}
-			if res.err != nil {
-				d.Log.Warn("upload not hashed", "asset", body.ID, "err", res.err)
-				return
+			// Flows run even if the original could not be hashed; they just lack trigger.data.original.
+			data := map[string]any{"status": body.Status}
+			res, _ := ex.Get(uploadKey{}).(*uploadResult)
+			if res == nil {
+				d.Log.Warn("upload not hashed: not a multipart request", "asset", body.ID)
+			} else {
+				select {
+				case <-res.done:
+					if res.err != nil {
+						d.Log.Warn("upload not hashed", "asset", body.ID, "err", res.err)
+					} else {
+						data["original"] = res.orig
+					}
+				case <-time.After(30 * time.Second):
+					d.Log.Error("upload hashing did not finish", "asset", body.ID)
+				}
 			}
 			d.publish(ex.Request, events.Event{
 				Type:     events.AssetUploaded,
 				Time:     time.Now().UTC(),
 				AssetIDs: []string{body.ID},
-				Data:     map[string]any{"status": body.Status, "original": res.orig},
+				Data:     data,
 			})
 		},
 	}
