@@ -23,6 +23,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/proxy"
 	"github.com/serraniel/immich-flows/internal/queue"
 	"github.com/serraniel/immich-flows/internal/runs"
+	"github.com/serraniel/immich-flows/internal/schedule"
 	"github.com/serraniel/immich-flows/internal/steps"
 	"github.com/serraniel/immich-flows/internal/store"
 	"github.com/serraniel/immich-flows/internal/trashwatch"
@@ -70,6 +71,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 		DB: db, Users: conn.Users, Clients: conn.Client, Publish: publish, Wants: eng.Wants, Log: log,
 	})
 	go trash.Run(ctx, cfg.TrashInterval)
+	go schedule.Run(ctx, schedule.Deps{Flows: flowDir.Flows, Users: conn.Users, Trigger: eng.Trigger, Jobs: jobs, Log: log})
 
 	seen := &webhook.Seen{DB: db}
 	webhook.Register(jobs, seen, publish)

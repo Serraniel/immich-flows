@@ -43,7 +43,7 @@ func (f *Flow) UnmarshalYAML(n *yaml.Node) error {
 
 // UnmarshalYAML implements yaml.Unmarshaler.
 func (t *Trigger) UnmarshalYAML(n *yaml.Node) error {
-	if err := strict(n, "on", "if"); err != nil {
+	if err := strict(n, "on", "if", "cron"); err != nil {
 		return err
 	}
 	type plain Trigger

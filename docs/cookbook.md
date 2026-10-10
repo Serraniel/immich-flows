@@ -167,3 +167,20 @@ curl -X POST -H 'X-Immich-Flows-Token: <token>' -H 'Content-Type: application/js
   -d '{"assetIds": ["<asset id>"], "tags": ["album-print/2026"]}' \
   https://photos.example.com/_flows/api/flows/tag-from-script/webhook
 ```
+
+## Nightly ping
+
+`IMMICH_FLOWS_HTTP_ALLOW=hc-ping.com`, `TZ=Europe/Berlin`:
+
+```yaml
+id: nightly-ping
+trigger:
+  on: schedule
+  cron: '0 3 * * *'
+steps:
+  - use: http
+    with:
+      url: https://hc-ping.com/<uuid>
+```
+
+Scheduled flows run once per connected user and have no asset.

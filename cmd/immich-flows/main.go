@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	_ "time/tzdata" // TZ works in the distroless image
 
 	"github.com/serraniel/immich-flows/internal/app"
 	"github.com/serraniel/immich-flows/internal/config"

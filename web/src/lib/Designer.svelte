@@ -244,6 +244,16 @@
 						onchange={(e) => field(['trigger'], 'if', e.currentTarget.value)}
 					/>
 				</label>
+				{#if t.on === 'schedule'}
+					<label>
+						cron <small>(minute hour day month weekday)</small>
+						<input
+							value={t.cron ?? ''}
+							placeholder="0 3 * * *"
+							onchange={(e) => field(['trigger'], 'cron', e.currentTarget.value)}
+						/>
+					</label>
+				{/if}
 			{:else if selected.kind === 'case'}
 				{@const path = selected.path}
 				{@const c = at(path) as { if?: string } | undefined}

@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/serraniel/immich-flows/internal/cron"
 )
 
 // Triggers lists valid values for trigger.on.
@@ -25,6 +27,7 @@ var Triggers = []string{
 	"tag.removed",
 	"manual",
 	"webhook",
+	"schedule",
 }
 
 // UseSwitch is the built-in branching step.
@@ -49,6 +52,8 @@ type Flow struct {
 type Trigger struct {
 	On string `yaml:"on" json:"on"`
 	If string `yaml:"if,omitempty" json:"if,omitempty" jsonschema:"description=Expression; the flow runs only if true"`
+	// Cron is required for on: schedule, e.g. "0 3 * * *" (container time zone).
+	Cron string `yaml:"cron,omitempty" json:"cron,omitempty" jsonschema:"description=Only for on: schedule. 5-field cron expression in the container time zone (TZ)"`
 
 	pos pos
 }
@@ -166,6 +171,16 @@ func (f *Flow) validate() Errors {
 	}
 	if !slices.Contains(Triggers, f.Trigger.On) {
 		add(f.Trigger.pos, "trigger.on %q unknown, valid: %s", f.Trigger.On, strings.Join(Triggers, ", "))
+	}
+	switch {
+	case f.Trigger.On == "schedule" && f.Trigger.Cron == "":
+		add(f.Trigger.pos, "trigger.cron is required for on: schedule")
+	case f.Trigger.On == "schedule":
+		if _, err := cron.Parse(f.Trigger.Cron); err != nil {
+			add(f.Trigger.pos, "trigger.%v", err)
+		}
+	case f.Trigger.Cron != "":
+		add(f.Trigger.pos, "trigger.cron is only valid for on: schedule")
 	}
 	if len(f.Steps) == 0 {
 		add(f.pos, "steps must not be empty")

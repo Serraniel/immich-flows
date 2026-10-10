@@ -103,3 +103,19 @@ func TestSchema(t *testing.T) {
 		t.Errorf("schema incomplete:\n%s", b)
 	}
 }
+
+func TestScheduleTrigger(t *testing.T) {
+	ok := "id: s\ntrigger: {on: schedule, cron: '0 3 * * *'}\nsteps: [{use: log}]\n"
+	if f, err := Parse([]byte(ok)); err != nil || f.Trigger.Cron != "0 3 * * *" {
+		t.Fatalf("%v %+v", err, f)
+	}
+	for name, src := range map[string]string{
+		"missing cron":  "id: s\ntrigger: {on: schedule}\nsteps: [{use: log}]\n",
+		"bad cron":      "id: s\ntrigger: {on: schedule, cron: '61 * * * *'}\nsteps: [{use: log}]\n",
+		"cron on other": "id: s\ntrigger: {on: manual, cron: '@daily'}\nsteps: [{use: log}]\n",
+	} {
+		if _, err := Parse([]byte(src)); err == nil {
+			t.Errorf("%s accepted", name)
+		}
+	}
+}

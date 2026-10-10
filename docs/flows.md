@@ -35,6 +35,7 @@ JSON Schema for editor completion: [flow.schema.json](flow.schema.json). Add to 
 | `id` | `[a-z0-9][a-z0-9_-]*`, unique |
 | `enabled` | default `true` |
 | `trigger.on`, `trigger.if` | event and optional filter expression |
+| `trigger.cron` | only for `on: schedule` |
 | `steps[].id` | needed to reference outputs as `steps.<id>`; unique within the flow |
 | `steps[].use` | step type |
 | `steps[].if` | skip the step if false |
@@ -123,7 +124,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | `tag.assigned` / `tag.removed` | user changed tags through Immich. One event per tag, one run per asset. `trigger.data.tag`: `id`, `value`, `name`. Tag changes made by flows do not trigger these (no loops) |
 | `manual` | only via [manual runs](#manual-runs-and-backfill); any flow can be run manually |
 | `webhook` | `POST /_flows/api/flows/<id>/webhook` with header `X-Immich-Flows-Token` (per user and flow, shown at `/_flows/`). `trigger.data.body`: the JSON body; a top-level `assetIds` list starts one run per asset, otherwise one run without asset. Runs act as the token's user |
-| `schedule` | planned (#35) |
+| `schedule` | `trigger.cron` (5 fields: minute hour day month weekday; `*`, ranges, steps, lists; `@hourly`, `@daily`, `@weekly`, `@monthly`, `@yearly`), in the container time zone (`TZ`). One run per connected user, without asset. `trigger.data.scheduledAt`. Missed times (downtime) are skipped |
 
 ## Steps
 

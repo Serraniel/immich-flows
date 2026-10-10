@@ -552,6 +552,10 @@
     "Trigger": {
       "additionalProperties": false,
       "properties": {
+        "cron": {
+          "description": "Only for on: schedule. 5-field cron expression in the container time zone (TZ)",
+          "type": "string"
+        },
         "if": {
           "description": "Expression; the flow runs only if true",
           "type": "string"
@@ -566,7 +570,8 @@
             "tag.assigned",
             "tag.removed",
             "manual",
-            "webhook"
+            "webhook",
+            "schedule"
           ],
           "type": "string"
         }
