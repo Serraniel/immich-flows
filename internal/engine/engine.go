@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/serraniel/immich-flows/internal/eval"
@@ -59,6 +60,10 @@ type Deps struct {
 	Immich ClientFunc
 	// LoadAsset returns the asset as exposed to expressions (env.asset).
 	LoadAsset func(ctx context.Context, userID, assetID string) (map[string]any, error)
+	// HTTPAllow lists hosts the http step may call: exact names, "*.example.com" or "*".
+	HTTPAllow []string
+	// HTTP is the client for the http step; nil means http.DefaultClient's transport.
+	HTTP *http.Client
 }
 
 // Engine dispatches events to flows and executes runs.

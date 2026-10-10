@@ -130,3 +130,20 @@ Progress and errors: Runs page (`/_flows/runs`).
 ## Rename or reorganize tags
 
 Not a flow: use the Tags page (`/_flows/tags`) or [the tag API](tags.md), e.g. move every `service-a/*` tag to `services/a/*` with one bulk operation.
+
+## Notify another service
+
+`IMMICH_FLOWS_HTTP_ALLOW=ntfy.sh`:
+
+```yaml
+id: notify-upload
+trigger:
+  on: asset.uploaded
+  if: 'asset.type == "VIDEO"'
+steps:
+  - use: http
+    with:
+      method: POST
+      url: https://ntfy.sh/my-immich
+      body: 'New video: {{ asset.originalFileName }}'
+```

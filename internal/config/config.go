@@ -25,6 +25,8 @@ type Config struct {
 	FlowsDir string // flow YAML files
 	// TrashInterval is how often the trash is reconciled to detect deletions by Immich itself.
 	TrashInterval time.Duration
+	// HTTPAllow lists hosts the http step may call.
+	HTTPAllow []string
 }
 
 // Load reads the configuration from the environment.
@@ -63,6 +65,11 @@ func load(getenv func(string) string) (*Config, error) {
 	}
 	if c.TrashInterval, err = time.ParseDuration(get("IMMICH_FLOWS_TRASH_INTERVAL", "10m")); err != nil || c.TrashInterval < time.Second {
 		return nil, fmt.Errorf("IMMICH_FLOWS_TRASH_INTERVAL: must be a duration of at least 1s, e.g. 10m")
+	}
+	for h := range strings.SplitSeq(get("IMMICH_FLOWS_HTTP_ALLOW", ""), ",") {
+		if h = strings.ToLower(strings.TrimSpace(h)); h != "" {
+			c.HTTPAllow = append(c.HTTPAllow, h)
+		}
 	}
 	if err := c.LogLevel.UnmarshalText([]byte(get("IMMICH_FLOWS_LOG_LEVEL", "info"))); err != nil {
 		return nil, fmt.Errorf("IMMICH_FLOWS_LOG_LEVEL: %w", err)

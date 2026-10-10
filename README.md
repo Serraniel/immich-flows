@@ -53,6 +53,7 @@ Open `https://<your-immich>/_flows/` and click **Connect**. This creates an Immi
 | `IMMICH_FLOWS_FLOWS_DIR` | `/data/flows` | Flow YAML files, reloaded on change |
 | `IMMICH_FLOWS_WORKERS` | `4` | Concurrent flow jobs |
 | `IMMICH_FLOWS_TRASH_INTERVAL` | `10m` | How often the trash is checked for assets Immich deleted itself (`asset.deleted`) |
+| `IMMICH_FLOWS_HTTP_ALLOW` | none | Hosts the `http` step may call, comma-separated: `api.example.com`, `*.example.com`, `*` |
 | `IMMICH_FLOWS_SECRET` | generated | Encrypts stored Immich API keys. If unset, a key is generated in `/data/secret.key` |
 | `IMMICH_FLOWS_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 
