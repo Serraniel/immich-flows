@@ -103,7 +103,7 @@ export function graph(flow: FlowData): { nodes: GraphNode[]; edges: GraphEdge[] 
 			kind: 'trigger',
 			path: ['trigger'],
 			label: flow.trigger?.on ?? '(trigger)',
-			detail: flow.trigger?.if ? `if ${flow.trigger.if}` : undefined
+			detail: flow.trigger?.cron ?? (flow.trigger?.if ? `if ${flow.trigger.if}` : undefined)
 		},
 		{ x: ((total - 1) / 2) * COL, y: 0 },
 		[]

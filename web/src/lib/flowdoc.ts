@@ -17,7 +17,7 @@ export type StepData = {
 export type FlowData = {
 	id?: string;
 	name?: string;
-	trigger?: { on?: string; if?: string };
+	trigger?: { on?: string; if?: string; cron?: string };
 	steps?: StepData[];
 	ui?: { positions?: Record<string, Pos> };
 };

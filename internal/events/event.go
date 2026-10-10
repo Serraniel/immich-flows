@@ -14,6 +14,7 @@ const (
 	TagRemoved         = "tag.removed"
 	Manual             = "manual"
 	Webhook            = "webhook"
+	Schedule           = "schedule"
 )
 
 // Event is something that happened in Immich.
