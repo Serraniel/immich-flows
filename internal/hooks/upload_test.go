@@ -163,18 +163,7 @@ func TestUploadNoEvent(t *testing.T) {
 		users  Users
 	}{
 		"upstream error": {http.StatusBadRequest, `{"message":"bad"}`, func() (io.Reader, string) { return form(t, []byte("x"), nil) }, fakeUsers{}},
-		"not multipart":  {http.StatusCreated, `{"id":"a1"}`, func() (io.Reader, string) { return strings.NewReader("{}"), "application/json" }, fakeUsers{}},
-		"malformed": {http.StatusCreated, `{"id":"a1"}`, func() (io.Reader, string) {
-			return strings.NewReader("garbage"), "multipart/form-data; boundary=xyz"
-		}, fakeUsers{}},
-		"no asset part": {http.StatusCreated, `{"id":"a1"}`, func() (io.Reader, string) {
-			var b bytes.Buffer
-			w := multipart.NewWriter(&b)
-			_ = w.WriteField("x", "y")
-			_ = w.Close()
-			return &b, w.FormDataContentType()
-		}, fakeUsers{}},
-		"unknown user": {http.StatusCreated, `{"id":"a1"}`, func() (io.Reader, string) { return form(t, []byte("x"), nil) }, fakeUsers{err: errors.New("401")}},
+		"unknown user":   {http.StatusCreated, `{"id":"a1"}`, func() (io.Reader, string) { return form(t, []byte("x"), nil) }, fakeUsers{err: errors.New("401")}},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -184,6 +173,36 @@ func TestUploadNoEvent(t *testing.T) {
 				t.Errorf("proxy changed status: %d", s)
 			}
 			rec.none(t)
+		})
+	}
+}
+
+// Uploads that cannot be hashed still trigger flows, without trigger.data.original.
+func TestUploadWithoutHashes(t *testing.T) {
+	cases := map[string]func() (io.Reader, string){
+		"not multipart": func() (io.Reader, string) { return strings.NewReader("{}"), "application/json" },
+		"malformed": func() (io.Reader, string) {
+			return strings.NewReader("garbage"), "multipart/form-data; boundary=xyz"
+		},
+		"no asset part": func() (io.Reader, string) {
+			var b bytes.Buffer
+			w := multipart.NewWriter(&b)
+			_ = w.WriteField("x", "y")
+			_ = w.Close()
+			return &b, w.FormDataContentType()
+		},
+	}
+	for name, body := range cases {
+		t.Run(name, func(t *testing.T) {
+			rec := newRecorder()
+			b, ct := body()
+			if s := post(t, upstream(t, http.StatusCreated, `{"id":"a1","status":"created"}`, nil), rec, fakeUsers{}, b, ct); s != http.StatusCreated {
+				t.Errorf("proxy changed status: %d", s)
+			}
+			ev := rec.wait(t)
+			if ev.AssetIDs[0] != "a1" || ev.Data["status"] != "created" || ev.Data["original"] != nil {
+				t.Errorf("event %+v", ev)
+			}
 		})
 	}
 }

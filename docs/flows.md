@@ -116,7 +116,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 
 | Trigger | Payload |
 | --- | --- |
-| `asset.uploaded` | through immich-flows: `trigger.data.original` (`filename`, `size`, `md5`, `sha1`, `sha256`, `sha512` of the bytes the client sent), `trigger.data.status` (`created`/`duplicate`). From an [Immich workflow webhook](install.md#assets-added-outside-immich-flows) (external libraries, imports): `trigger.data.source` is `webhook`, no `original` |
+| `asset.uploaded` | through immich-flows: `trigger.data.original` (missing if the request could not be hashed; the flow still runs): (`filename`, `size`, `md5`, `sha1`, `sha256`, `sha512` of the bytes the client sent), `trigger.data.status` (`created`/`duplicate`). From an [Immich workflow webhook](install.md#assets-added-outside-immich-flows) (external libraries, imports): `trigger.data.source` is `webhook`, no `original` |
 | `asset.trashed` | trashed via `DELETE /api/assets` |
 | `asset.deleted` | permanently deleted through immich-flows (`force`, or emptied trash), or by Immich itself (trash auto-purge, other clients bypassing the proxy; detected every `IMMICH_FLOWS_TRASH_INTERVAL`, only for assets seen in the trash, `trigger.data.source` is `reconcile`). `asset` comes from a snapshot taken before deletion (max 500 assets per request), otherwise only `asset.id` |
 | `asset.restored` | restored from trash |
