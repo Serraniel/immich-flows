@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/serraniel/immich-flows/internal/api"
@@ -58,7 +59,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	go flowDir.Watch(ctx, 2*time.Second)
 
 	jobs := queue.New(db, log, queue.Options{Workers: cfg.Workers})
-	clients := userClients(conn)
+	clients := userClients(conn, log)
 	eng := engine.New(reg, db, flowDir, engine.Deps{
 		Immich:    clients,
 		LoadAsset: engine.ImmichAssets(clients),
@@ -138,12 +139,20 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	return nil
 }
 
-// userClients returns Immich clients acting as a connected user. Runs for unconnected users are skipped.
-func userClients(conn *connect.Manager) engine.ClientFunc {
+// userClients returns Immich clients acting as a connected user. Runs for unconnected users are
+// skipped; this is logged once per user and process.
+func userClients(conn *connect.Manager, log *slog.Logger) engine.ClientFunc {
+	var warned sync.Map
 	return func(ctx context.Context, userID string) (*immich.ClientWithResponses, error) {
 		c, err := conn.Client(ctx, userID)
 		if errors.Is(err, connect.ErrNotConnected) {
+			if _, seen := warned.LoadOrStore(userID, true); !seen {
+				log.Info("flows skipped: user has not connected immich-flows (open /_flows/ and click Connect)", "user", userID)
+			}
 			return nil, queue.Permanent(fmt.Errorf("%w: %w", engine.ErrSkip, err))
+		}
+		if err == nil {
+			warned.Delete(userID)
 		}
 		return c, err
 	}
