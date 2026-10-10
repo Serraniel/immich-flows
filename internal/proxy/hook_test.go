@@ -147,6 +147,26 @@ func TestHookPathValueAndNonJSON(t *testing.T) {
 	}
 }
 
+// immich-upload-optimizer answers uploads with JSON labelled text/plain.
+func TestHookJSONWithWrongContentType(t *testing.T) {
+	up := newUpstream(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"a1","status":"created"}`))
+	})
+	done := make(chan *Exchange, 1)
+	srv := serve(t, up, Hook{Route: "POST /api/assets", Post: func(ex *Exchange) { done <- ex }})
+	res, err := http.Post(srv.URL+"/api/assets", "text/plain", strings.NewReader("x"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = io.ReadAll(res.Body)
+	_ = res.Body.Close()
+	if ex := <-done; string(ex.Response) != `{"id":"a1","status":"created"}` {
+		t.Errorf("response %q", ex.Response)
+	}
+}
+
 func TestHookPostOnUpstreamError(t *testing.T) {
 	u, _ := url.Parse("http://127.0.0.1:1")
 	done := make(chan *Exchange, 1)

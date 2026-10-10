@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 )
@@ -30,7 +30,7 @@ type Exchange struct {
 	Request *http.Request
 	// Set before Post.
 	Status   int
-	Response []byte // JSON response body; nil if not JSON or larger than 1 MiB
+	Response []byte // response body if it is valid JSON (any Content-Type) and at most 1 MiB
 	Complete bool   // response body fully read from upstream
 
 	vals map[any]any
@@ -99,26 +99,23 @@ func modifyResponse(res *http.Response) error {
 		return nil
 	}
 	ex.Status = res.StatusCode
-	res.Body = &capture{
-		ReadCloser: res.Body,
-		ex:         ex,
-		json:       strings.Contains(res.Header.Get("Content-Type"), "json"),
-	}
+	// Content-Type is not trusted: proxies in the chain (e.g. immich-upload-optimizer) answer
+	// with text/plain. Hooked routes are API calls with small bodies.
+	res.Body = &capture{ReadCloser: res.Body, ex: ex}
 	return nil
 }
 
-// capture copies up to maxCapture bytes of a JSON response while it streams to the client.
+// capture copies up to maxCapture bytes of the response while it streams to the client.
 type capture struct {
 	io.ReadCloser
 	ex       *Exchange
-	json     bool
 	buf      []byte
 	overflow bool
 }
 
 func (c *capture) Read(p []byte) (int, error) {
 	n, err := c.ReadCloser.Read(p)
-	if c.json && !c.overflow {
+	if !c.overflow {
 		if len(c.buf)+n > maxCapture {
 			c.overflow, c.buf = true, nil
 		} else {
@@ -133,7 +130,7 @@ func (c *capture) Read(p []byte) (int, error) {
 
 func (c *capture) Close() error {
 	err := c.ReadCloser.Close()
-	if c.json && !c.overflow {
+	if !c.overflow && json.Valid(c.buf) {
 		c.ex.Response = c.buf
 	}
 	c.ex.finish()
