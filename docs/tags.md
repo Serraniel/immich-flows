@@ -2,6 +2,8 @@
 
 Immich can rename a tag but not move it, and renaming leaves children on the old path. immich-flows does both, including children, and merges into existing tags.
 
+UI: `/_flows/tags` shows the tag tree; select a tag or enter a pattern, preview, then apply. The API below does the same.
+
 ```http
 POST /_flows/api/tags/move
 {"from": "XX", "to": "YY/XX", "dryRun": true}

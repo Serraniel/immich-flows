@@ -17,6 +17,7 @@
 		<strong>immich-flows</strong>
 		<a href={resolve('/')}>Overview</a>
 		<a href={resolve('/runs')}>Runs</a>
+		<a href={resolve('/tags')}>Tags</a>
 	</nav>
 	<span>
 		{#if data.user}{data.user.name}{/if}
