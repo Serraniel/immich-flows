@@ -23,7 +23,7 @@ Priority: **P1** must, **P2** should, **P3** later.
 - P2 Write asset metadata (key/value).
 - P1 File hashes: MD5, SHA-1, SHA-256, SHA-512; original and stored file.
 - P1 Filename parsing: regex with named groups, split, conditions.
-- P3 HTTP/webhook action; custom actions as plugins.
+- P3 HTTP/webhook action; custom actions as plugins (deferred, #38).
 
 ## Flows
 - P1 Defined in YAML (files and UI).

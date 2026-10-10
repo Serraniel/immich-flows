@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { deleteFlow, readFlow, saveFlow, setEnabled, type Entry } from '#lib/flows.ts';
+	import { deleteFlow, readFlow, runOnAll, saveFlow, setEnabled, type Entry } from '#lib/flows.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	let error = $state('');
+	let notice = $state('');
 
 	async function act(f: () => Promise<unknown>) {
 		error = '';
@@ -41,6 +42,16 @@
 		});
 	}
 
+	function backfill(e: Entry) {
+		const id = e.flow!.id;
+		if (!confirm(`Run ${id} on all your assets now, regardless of its trigger?`)) return;
+		notice = '';
+		act(async () => {
+			const r = await runOnAll(id);
+			notice = `${id}: ${r.queued} runs queued. Progress: Runs page.`;
+		});
+	}
+
 	function remove(e: Entry) {
 		if (confirm(`Delete ${e.source}?`)) act(() => deleteFlow(e.source));
 	}
@@ -65,6 +76,7 @@
 	</p>
 
 	{#if error}<p role="alert" class="error">{error}</p>{/if}
+	{#if notice}<p role="status">{notice}</p>{/if}
 
 	{#if data.entries.length === 0}
 		<p>No flow files.</p>
@@ -93,6 +105,11 @@
 							{/if}
 						</td>
 						<td class="row-actions">
+							{#if e.flow && !e.error && e.flow.enabled !== false}
+								<button title="Run on all your existing assets" onclick={() => backfill(e)}
+									>Run on all</button
+								>
+							{/if}
 							<button onclick={() => exportFlow(e)}>Export</button>
 							<button onclick={() => remove(e)}>Delete</button>
 						</td>

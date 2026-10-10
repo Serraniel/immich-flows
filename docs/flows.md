@@ -64,7 +64,7 @@ POST /_flows/api/flows/<id>/run
 {"assetIds": ["..."]}   or   {"all": true}
 ```
 
-`trigger.type` is `manual` in these runs. Guard upload-only steps, e.g. `hash` with `source: original`, with `if: trigger.type == "asset.uploaded"`.
+In the UI: Flows → **Run on all**. `trigger.type` is `manual` in these runs. Guard upload-only steps, e.g. `hash` with `source: original`, with `if: trigger.type == "asset.uploaded"`.
 
 ## Files
 
