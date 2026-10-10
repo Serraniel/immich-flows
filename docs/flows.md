@@ -20,7 +20,7 @@ steps:
       tags: ['hashes/MD5/{{ steps.h.md5 }}']
 ```
 
-Full example: [examples/flows/service-tags.yaml](../examples/flows/service-tags.yaml).
+Recipes: [cookbook.md](cookbook.md). Full example: [examples/flows/service-tags.yaml](../examples/flows/service-tags.yaml).
 
 JSON Schema for editor completion: [flow.schema.json](flow.schema.json). Add to the top of a flow file:
 
@@ -90,7 +90,16 @@ Hooks only query Immich for extra data (snapshots, trash listings) if an enabled
 
 ## Expressions
 
-`if:` fields and `{{ }}` templates use [expr](https://expr-lang.org/docs/language-definition). Available: `trigger`, `asset`, `steps.<id>`, `vars`, `env` (allowlisted).
+`if:` fields and `{{ }}` templates use [expr](https://expr-lang.org/docs/language-definition).
+
+| Variable | |
+| --- | --- |
+| `trigger.type` | trigger name, `manual` for manual runs |
+| `trigger.time`, `trigger.userId` | event time, Immich user ID |
+| `trigger.data` | trigger payload, see [Triggers](#triggers) |
+| `asset` | Immich asset (`GET /api/assets/:id`: `originalFileName`, `type`, `exifInfo`, `tags`, …) plus `baseName` (filename without extension) and `extension` (lowercase, no dot). Only `asset.id` if the asset is gone |
+| `steps.<id>` | outputs of earlier steps with an `id` |
+| `vars` | values from `set` steps |
 
 - `if:` must return a bool. Empty means true.
 - A value that is exactly one `{{ }}` keeps its type (list, number, …). Mixed text is formatted as a string.
@@ -112,8 +121,8 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | `asset.restored` | restored from trash |
 | `duplicates.resolved` | one run per kept asset. `trigger.data`: `duplicateId`, `kept`, `trashed` (asset IDs), `assets` (snapshots before resolution), `tags` (asset ID → tag values before resolution). Trashed assets also emit `asset.trashed` |
 | `tag.assigned` / `tag.removed` | user changed tags through Immich. One event per tag, one run per asset. `trigger.data.tag`: `id`, `value`, `name`. Tag changes made by flows do not trigger these (no loops) |
-| `manual` | `assets` selected in UI |
-| `schedule` (low priority) | cron |
+| `manual` | only via [manual runs](#manual-runs-and-backfill); any flow can be run manually |
+| `schedule` | planned (#35) |
 
 ## Steps
 
@@ -129,7 +138,7 @@ tags: '{{ split(steps.parse.tags, "_") | map("service-a/" + #) }}'
 | `tag.read` | `asset`, `prefix`. Outputs: `tags` (full values), `names` (last segment), `count` |
 | `tag.merge` | `from` (asset IDs), `to` (default: run's asset), `prefix`. Applies the union of the `from` assets' tags to `to`. Outputs: `tags`, `count` |
 | `metadata.set` | `key`, `value` (object, replaces the previous value), `asset`. Writes Immich asset metadata (`PUT /api/assets/:id/metadata`) |
-| `http` (low priority) | call a webhook |
+| `http` | planned (#37) |
 | `log` | write to run log |
 
 ## Hash notes

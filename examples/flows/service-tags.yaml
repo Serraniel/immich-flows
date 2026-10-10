@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../../docs/flow.schema.json
-# Draft syntax, see docs/flows.md. Not implemented yet.
+# See docs/flows.md and docs/cookbook.md.
 id: service-tags
 name: Tags and hashes from filenames
 trigger:

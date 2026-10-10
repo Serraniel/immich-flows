@@ -58,7 +58,7 @@ Open `https://<your-immich>/_flows/` and click **Connect**. This creates an Immi
 ## Docs
 
 - [Architecture](docs/architecture.md)
-- [Flows](docs/flows.md)
+- [Flows](docs/flows.md), [Cookbook](docs/cookbook.md)
 - [Tag tools](docs/tags.md)
 - [Requirements](docs/requirements.md)
 
