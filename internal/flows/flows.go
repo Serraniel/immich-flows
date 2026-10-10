@@ -36,6 +36,7 @@ type Dir struct {
 	v   Validator
 	log *slog.Logger
 
+	wmu     sync.Mutex // serializes writes
 	mu      sync.RWMutex
 	entries []Entry
 	byID    map[string]*flow.Flow

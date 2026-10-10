@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -14,8 +15,9 @@ import (
 
 	"github.com/serraniel/immich-flows/internal/app"
 	"github.com/serraniel/immich-flows/internal/config"
-	"github.com/serraniel/immich-flows/internal/flow"
+	"github.com/serraniel/immich-flows/internal/engine"
 	"github.com/serraniel/immich-flows/internal/proxy"
+	"github.com/serraniel/immich-flows/internal/steps"
 )
 
 var version = "dev"
@@ -26,7 +28,14 @@ func main() {
 		case "healthcheck":
 			os.Exit(healthcheck())
 		case "schema":
-			b, err := flow.Schema()
+			reg := engine.NewRegistry()
+			steps.Register(reg)
+			s, err := reg.FlowSchema()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			b, err := json.MarshalIndent(s, "", "  ")
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)

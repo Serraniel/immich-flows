@@ -102,8 +102,4 @@ func TestSchema(t *testing.T) {
 	if !strings.Contains(string(b), `"duplicates.resolved"`) || !strings.Contains(string(b), `"continueOnError"`) {
 		t.Errorf("schema incomplete:\n%s", b)
 	}
-	committed, err := os.ReadFile("../../docs/flow.schema.json")
-	if err != nil || string(committed) != string(b)+"\n" {
-		t.Error("docs/flow.schema.json is stale, run go generate ./...")
-	}
 }

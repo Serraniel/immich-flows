@@ -86,7 +86,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           routes(px, api.New(proxy.Prefix+"/api", api.Deps{Immich: cfg.Immich, Auth: users, Conn: conn, Flows: flowDir, Runner: eng, Jobs: jobs, Runs: runs.New(db), Log: log})),
+		Handler:           routes(px, api.New(proxy.Prefix+"/api", api.Deps{Immich: cfg.Immich, Auth: users, Conn: conn, Flows: flowDir, Schema: reg, Runner: eng, Jobs: jobs, Runs: runs.New(db), Log: log})),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	errc := make(chan error, 1)
