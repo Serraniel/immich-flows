@@ -329,3 +329,36 @@ func TestImmichWebhook(t *testing.T) {
 		t.Errorf("runs: direct %d, proxied %d", count[direct], count[proxied])
 	}
 }
+
+func TestWebhookTrigger(t *testing.T) {
+	c := adminClient(t)
+	c.connect()
+	id := c.upload("webhook-trigger.jpg", randomJPEG(t)).ID
+	c.waitIdle()
+	var hooks []struct {
+		FlowID      string `json:"flowId"`
+		Path        string `json:"path"`
+		HeaderName  string `json:"headerName"`
+		HeaderValue string `json:"headerValue"`
+	}
+	c.json(http.MethodGet, "/_flows/api/flow-webhooks", nil, &hooks)
+	var path, token string
+	for _, h := range hooks {
+		if h.FlowID == "e2e-webhook" {
+			path, token = h.Path, h.HeaderValue
+		}
+	}
+	if path == "" {
+		t.Fatalf("flow not listed: %+v", hooks)
+	}
+	// No Immich credentials: the token alone authenticates.
+	anon := &client{t: t}
+	req := map[string]any{"assetIds": []string{id}, "label": "hello"}
+	if s := anon.jsonHeader(http.MethodPost, path, req, "X-Immich-Flows-Token", token); s != http.StatusAccepted {
+		t.Fatalf("trigger: %d", s)
+	}
+	if s := anon.jsonHeader(http.MethodPost, path, req, "X-Immich-Flows-Token", token+"x"); s != http.StatusUnauthorized {
+		t.Errorf("bad token: %d", s)
+	}
+	c.waitTags(id, []string{"e2e-webhook/hello"})
+}

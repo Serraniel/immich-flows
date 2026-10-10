@@ -13,6 +13,7 @@ const (
 	TagAssigned        = "tag.assigned"
 	TagRemoved         = "tag.removed"
 	Manual             = "manual"
+	Webhook            = "webhook"
 )
 
 // Event is something that happened in Immich.
