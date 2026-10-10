@@ -11,7 +11,6 @@ import (
 	"github.com/serraniel/immich-flows/internal/auth"
 	"github.com/serraniel/immich-flows/internal/connect"
 	"github.com/serraniel/immich-flows/internal/engine"
-	"github.com/serraniel/immich-flows/internal/flows"
 	"github.com/serraniel/immich-flows/internal/immich"
 )
 
@@ -20,7 +19,8 @@ type Deps struct {
 	Immich *url.URL
 	Auth   *auth.Authenticator
 	Conn   *connect.Manager
-	Flows  FlowLister
+	Flows  FlowStore
+	Schema Schemer
 	Runner Runner
 	Jobs   engine.Enqueuer
 	Runs   RunLog
@@ -32,21 +32,17 @@ type Server struct {
 	auth      *auth.Authenticator
 	conn      *connect.Manager
 	immichURL *url.URL
-	flows     FlowLister
+	flows     FlowStore
+	schema    Schemer
 	runner    Runner
 	jobs      engine.Enqueuer
 	runLog    RunLog
 	log       *slog.Logger
 }
 
-// FlowLister lists flow files with their validation state.
-type FlowLister interface {
-	Entries() []flows.Entry
-}
-
 // New returns the API handler mounted at prefix (e.g. "/_flows/api").
 func New(prefix string, d Deps) http.Handler {
-	s := &Server{auth: d.Auth, conn: d.Conn, immichURL: d.Immich, flows: d.Flows, runner: d.Runner, jobs: d.Jobs, runLog: d.Runs, log: d.Log}
+	s := &Server{auth: d.Auth, conn: d.Conn, immichURL: d.Immich, flows: d.Flows, schema: d.Schema, runner: d.Runner, jobs: d.Jobs, runLog: d.Runs, log: d.Log}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+prefix+"/me", s.me)
 	mux.HandleFunc("GET "+prefix+"/connection", s.connectionStatus)
@@ -54,7 +50,13 @@ func New(prefix string, d Deps) http.Handler {
 	mux.HandleFunc("DELETE "+prefix+"/connection", s.disconnect)
 	mux.HandleFunc("POST "+prefix+"/tags/move", s.moveTag)
 	mux.HandleFunc("POST "+prefix+"/tags/bulk", s.bulkTags)
-	mux.Handle("GET "+prefix+"/flows", auth.RequireAdmin(http.HandlerFunc(s.listFlows)))
+	admin := func(pattern string, h http.HandlerFunc) { mux.Handle(pattern, auth.RequireAdmin(h)) }
+	admin("GET "+prefix+"/flows", s.listFlows)
+	admin("GET "+prefix+"/flows/schema", s.flowSchema)
+	admin("GET "+prefix+"/flow-files/{source...}", s.readFlow)
+	admin("PUT "+prefix+"/flow-files/{source...}", s.writeFlow)
+	admin("PATCH "+prefix+"/flow-files/{source...}", s.enableFlow)
+	admin("DELETE "+prefix+"/flow-files/{source...}", s.deleteFlow)
 	mux.HandleFunc("POST "+prefix+"/flows/{id}/run", s.runFlow)
 	mux.HandleFunc("GET "+prefix+"/runs", s.listRuns)
 	mux.HandleFunc("GET "+prefix+"/runs/{id}", s.getRun)
@@ -67,14 +69,6 @@ func New(prefix string, d Deps) http.Handler {
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, auth.FromContext(r.Context()))
-}
-
-func (s *Server) listFlows(w http.ResponseWriter, _ *http.Request) {
-	entries := s.flows.Entries()
-	if entries == nil {
-		entries = []flows.Entry{}
-	}
-	writeJSON(w, http.StatusOK, entries)
 }
 
 func (s *Server) connectionStatus(w http.ResponseWriter, r *http.Request) {

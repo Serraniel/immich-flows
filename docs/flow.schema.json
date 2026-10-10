@@ -1,8 +1,7 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/serraniel/immich-flows/raw/main/docs/flow.schema.json",
   "$defs": {
     "Case": {
+      "additionalProperties": false,
       "properties": {
         "if": {
           "type": "string"
@@ -14,53 +13,488 @@
           "type": "array"
         }
       },
-      "additionalProperties": false,
-      "type": "object",
       "required": [
         "steps"
-      ]
+      ],
+      "type": "object"
     },
     "Step": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "hash"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "algorithms": {
+                    "default": [
+                      "md5",
+                      "sha1"
+                    ],
+                    "items": {
+                      "enum": [
+                        "md5",
+                        "sha1",
+                        "sha256",
+                        "sha512"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "source": {
+                    "default": "stored",
+                    "enum": [
+                      "original",
+                      "stored"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "log"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "metadata.set"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "asset": {
+                    "description": "Asset ID, default: the run's asset",
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "Metadata key, e.g. immich-flows.hashes",
+                    "type": "string"
+                  },
+                  "value": {
+                    "description": "Object to store; replaces the previous value",
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "regex"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "caseInsensitive": {
+                    "description": "Default false",
+                    "type": "boolean"
+                  },
+                  "input": {
+                    "description": "Text to match, usually a template",
+                    "type": "string"
+                  },
+                  "pattern": {
+                    "description": "RE2 pattern, e.g. ^(?P\u003cservice\u003e[^_]+)_",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "input",
+                  "pattern"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "set"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "split"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "input": {
+                    "description": "Text to split",
+                    "type": "string"
+                  },
+                  "separator": {
+                    "description": "Default _",
+                    "type": "string"
+                  },
+                  "skipEmpty": {
+                    "description": "Drop empty items, default true",
+                    "type": "boolean"
+                  },
+                  "trim": {
+                    "description": "Trim spaces around items, default true",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "input"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "tag.assign"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "asset": {
+                    "description": "Asset ID, default: the run's asset",
+                    "type": "string"
+                  },
+                  "assets": {
+                    "description": "Asset IDs",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "tags": {
+                    "description": "Tag values, hierarchical with /, e.g. service-a/cat",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "tags"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "tag.merge"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "prefix": {
+                    "description": "Only merge tags starting with this",
+                    "type": "string"
+                  },
+                  "to": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "from"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "tag.read"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "asset": {
+                    "description": "Asset ID, default: the run's asset",
+                    "type": "string"
+                  },
+                  "prefix": {
+                    "description": "Only tags starting with this, e.g. hashes/",
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
+                "const": "tag.remove"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "asset": {
+                    "description": "Asset ID, default: the run's asset",
+                    "type": "string"
+                  },
+                  "assets": {
+                    "description": "Asset IDs",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "tags": {
+                    "description": "Tag values, hierarchical with /, e.g. service-a/cat",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "tags"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
+        "cases": {
+          "description": "Only for use: switch. First matching case runs.",
+          "items": {
+            "$ref": "#/$defs/Case"
+          },
+          "type": "array"
+        },
+        "continueOnError": {
+          "type": "boolean"
+        },
         "id": {
-          "type": "string",
+          "description": "Required to reference outputs (steps.\u003cid\u003e)",
           "pattern": "^[a-z0-9][a-z0-9_-]*$",
-          "description": "Required to reference outputs (steps.\u003cid\u003e)"
+          "type": "string"
+        },
+        "if": {
+          "description": "Expression; the step is skipped if false",
+          "type": "string"
         },
         "name": {
           "type": "string"
         },
         "use": {
+          "anyOf": [
+            {
+              "const": "switch",
+              "description": "Branch: runs the first case whose if is true"
+            },
+            {
+              "const": "hash",
+              "description": "File hashes (hex). original: as uploaded by the client (asset.uploaded only). stored: as stored in Immich."
+            },
+            {
+              "const": "log",
+              "description": "Write a message to the run log"
+            },
+            {
+              "const": "metadata.set",
+              "description": "Write a JSON object to Immich asset metadata under key. Not shown in the Immich UI."
+            },
+            {
+              "const": "regex",
+              "description": "Match input against a regular expression (RE2). Named groups become outputs."
+            },
+            {
+              "const": "set",
+              "description": "Set variables, available as vars.\u003cname\u003e in later steps."
+            },
+            {
+              "const": "split",
+              "description": "Split input into items."
+            },
+            {
+              "const": "tag.assign",
+              "description": "Assign tags, creating missing ones including parents."
+            },
+            {
+              "const": "tag.merge",
+              "description": "Apply the union of the tags of the from assets to the to assets."
+            },
+            {
+              "const": "tag.read",
+              "description": "Read the tags of an asset."
+            },
+            {
+              "const": "tag.remove",
+              "description": "Remove tags from assets. The tags themselves are kept."
+            }
+          ],
           "type": "string"
-        },
-        "if": {
-          "type": "string",
-          "description": "Expression; the step is skipped if false"
         },
         "with": {
           "type": "object"
-        },
-        "cases": {
-          "items": {
-            "$ref": "#/$defs/Case"
-          },
-          "type": "array",
-          "description": "Only for use: switch. First matching case runs."
-        },
-        "continueOnError": {
-          "type": "boolean"
         }
       },
-      "additionalProperties": false,
-      "type": "object",
       "required": [
         "use"
-      ]
+      ],
+      "type": "object"
     },
     "Trigger": {
+      "additionalProperties": false,
       "properties": {
+        "if": {
+          "description": "Expression; the flow runs only if true",
+          "type": "string"
+        },
         "on": {
-          "type": "string",
           "enum": [
             "asset.uploaded",
             "asset.trashed",
@@ -70,56 +504,54 @@
             "tag.assigned",
             "tag.removed",
             "manual"
-          ]
-        },
-        "if": {
-          "type": "string",
-          "description": "Expression; the flow runs only if true"
+          ],
+          "type": "string"
         }
       },
-      "additionalProperties": false,
-      "type": "object",
       "required": [
         "on"
-      ]
+      ],
+      "type": "object"
     }
   },
+  "$id": "https://github.com/serraniel/immich-flows/raw/main/docs/flow.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9_-]*$"
-    },
-    "name": {
-      "type": "string"
-    },
     "description": {
       "type": "string"
     },
     "enabled": {
-      "type": "boolean",
-      "default": true
+      "default": true,
+      "type": "boolean"
     },
-    "trigger": {
-      "$ref": "#/$defs/Trigger"
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
     },
     "steps": {
       "items": {
         "$ref": "#/$defs/Step"
       },
-      "type": "array",
-      "minItems": 1
+      "minItems": 1,
+      "type": "array"
+    },
+    "trigger": {
+      "$ref": "#/$defs/Trigger"
     },
     "ui": {
-      "type": "object",
-      "description": "Editor state (node positions). Ignored by the engine."
+      "description": "Editor state (node positions). Ignored by the engine.",
+      "type": "object"
     }
   },
-  "additionalProperties": false,
-  "type": "object",
   "required": [
     "id",
     "trigger",
     "steps"
   ],
-  "title": "immich-flows flow"
+  "title": "immich-flows flow",
+  "type": "object"
 }

@@ -1,6 +1,7 @@
 package steps
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -33,5 +34,22 @@ func TestExampleFlowsValidate(t *testing.T) {
 	}
 	if len(files) == 0 {
 		t.Error("no example flows found")
+	}
+}
+
+func TestSchemaFile(t *testing.T) {
+	reg := engine.NewRegistry()
+	Register(reg)
+	s, err := reg.FlowSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	committed, err := os.ReadFile("../../docs/flow.schema.json")
+	if err != nil || string(committed) != string(b)+"\n" {
+		t.Error("docs/flow.schema.json is stale, run go generate ./...")
 	}
 }

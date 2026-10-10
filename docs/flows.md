@@ -73,6 +73,19 @@ Invalid files are logged and listed with their error at `GET /_flows/api/flows` 
 
 Flows run for all users who connected immich-flows (see README).
 
+Admins can edit files through the API (the UI uses it). `{source}` is the path listed by `GET flows`.
+
+| Request | |
+| --- | --- |
+| `GET /_flows/api/flows/schema` | JSON Schema including the registered steps |
+| `GET /_flows/api/flow-files/{source}` | Raw YAML |
+| `PUT /_flows/api/flow-files/{source}` | Write; invalid content is rejected (422 with `problems`) |
+| `PUT …?dryRun=true` | Validate only: `{"problems": [{"line", "col", "message"}]}` |
+| `PATCH /_flows/api/flow-files/{source}` | `{"enabled": false}`; comments are kept |
+| `DELETE /_flows/api/flow-files/{source}` | Delete |
+
+Writes need a writable flows directory (409 otherwise).
+
 Hooks only query Immich for extra data (snapshots, trash listings) if an enabled flow uses that trigger.
 
 ## Expressions
