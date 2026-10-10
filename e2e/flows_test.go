@@ -282,3 +282,50 @@ func TestServerSideDelete(t *testing.T) {
 		t.Errorf("proxy delete runs: %q", msgs)
 	}
 }
+
+// Uploads that bypass the proxy reach flows through an Immich workflow with the core
+// "Trigger Webhook" step. Uploads through the proxy are not reported twice.
+func TestImmichWebhook(t *testing.T) {
+	c := adminClient(t)
+	c.connect()
+	var info struct {
+		Path        string `json:"path"`
+		HeaderName  string `json:"headerName"`
+		HeaderValue string `json:"headerValue"`
+	}
+	if s := c.json(http.MethodGet, "/_flows/api/webhook", nil, &info); s != http.StatusOK || info.HeaderValue == "" {
+		t.Fatalf("webhook info: %d %+v", s, info)
+	}
+	var wf struct {
+		ID string `json:"id"`
+	}
+	body := map[string]any{
+		"name": "immich-flows e2e", "trigger": "AssetCreate", "enabled": true,
+		"steps": []map[string]any{{"method": "immich-plugin-core#webhook", "config": map[string]any{
+			"url": "http://immich-flows:2283" + info.Path, "headerName": info.HeaderName, "headerValue": info.HeaderValue,
+		}}},
+	}
+	if s := c.json(http.MethodPost, "/api/workflows", body, &wf); s != http.StatusCreated && s != http.StatusOK {
+		t.Fatalf("create workflow: %d", s)
+	}
+	defer c.json(http.MethodDelete, "/api/workflows/"+wf.ID, nil, nil)
+
+	n := time.Now().UnixNano()
+	direct := c.direct().upload(fmt.Sprintf("SERVICE-A_%d_hook.jpg", n), randomJPEG(t)).ID
+	proxied := c.upload(fmt.Sprintf("SERVICE-A_%d_both.jpg", n), randomJPEG(t)).ID
+	c.waitTags(direct, []string{"e2e-service-a/hook"})
+	c.waitTags(proxied, []string{"e2e-service-a/both"})
+
+	time.Sleep(35 * time.Second) // webhook delay: a duplicate would have run by now
+	var runs []struct {
+		AssetID string `json:"assetId"`
+	}
+	c.json(http.MethodGet, "/_flows/api/runs?flow=e2e-service-tags", nil, &runs)
+	count := map[string]int{}
+	for _, r := range runs {
+		count[r.AssetID]++
+	}
+	if count[direct] != 1 || count[proxied] != 1 {
+		t.Errorf("runs: direct %d, proxied %d", count[direct], count[proxied])
+	}
+}

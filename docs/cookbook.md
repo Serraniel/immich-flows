@@ -49,15 +49,15 @@ steps:
         - 'hashes/SHA1/STORED/{{ steps.stored.sha1 }}'
 ```
 
-`source: original` exists only during upload. For a flow that also runs manually (backfill), guard it:
+`source: original` exists only for uploads through immich-flows. For a flow that also runs manually (backfill) or for [webhook uploads](install.md#assets-added-outside-immich-flows), guard it:
 
 ```yaml
   - id: original
     use: hash
-    if: 'trigger.type == "asset.uploaded"'
+    if: 'trigger.data?.original != nil'
     with: { source: original }
   - use: tag.assign
-    if: 'trigger.type == "asset.uploaded"'
+    if: 'trigger.data?.original != nil'
     with: { tags: 'hashes/MD5/ORIGINAL/{{ steps.original.md5 }}' }
 ```
 

@@ -27,6 +27,7 @@ import (
 	"github.com/serraniel/immich-flows/internal/store"
 	"github.com/serraniel/immich-flows/internal/trashwatch"
 	"github.com/serraniel/immich-flows/internal/web"
+	"github.com/serraniel/immich-flows/internal/webhook"
 )
 
 // Run serves until ctx is cancelled.
@@ -69,9 +70,19 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	})
 	go trash.Run(ctx, cfg.TrashInterval)
 
+	seen := &webhook.Seen{DB: db}
+	webhook.Register(jobs, seen, publish)
+	hook := &webhook.Handler{Key: key, Jobs: jobs, Wants: eng.Wants, Log: log}
+
 	hookDeps := hooks.Deps{
 		Users: users,
 		Publish: func(ctx context.Context, ev events.Event) error {
+			if ev.Type == events.AssetUploaded {
+				// Reported here first; webhook duplicates from Immich workflows are dropped.
+				if err := seen.Mark(ctx, ev.AssetIDs...); err != nil {
+					log.Warn("webhook: mark upload", "err", err)
+				}
+			}
 			if ev.Type == events.AssetDeleted || ev.Type == events.AssetRestored {
 				// Reported by the proxy; the trash reconciler must not report it again.
 				if err := trash.Forget(ctx, ev.UserID, ev.AssetIDs); err != nil {
@@ -101,7 +112,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           routes(px, api.New(proxy.Prefix+"/api", api.Deps{Immich: cfg.Immich, Auth: users, Conn: conn, Flows: flowDir, Schema: reg, Runner: eng, Jobs: jobs, Runs: runs.New(db), Log: log})),
+		Handler:           routes(px, hook, api.New(proxy.Prefix+"/api", api.Deps{Immich: cfg.Immich, Auth: users, Conn: conn, Flows: flowDir, Schema: reg, Runner: eng, Jobs: jobs, Runs: runs.New(db), WebhookKey: key, Log: log})),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	errc := make(chan error, 1)
@@ -134,8 +145,9 @@ func userClients(conn *connect.Manager) engine.ClientFunc {
 	}
 }
 
-func routes(px, apiHandler http.Handler) http.Handler {
+func routes(px, hook, apiHandler http.Handler) http.Handler {
 	mux := http.NewServeMux()
+	mux.Handle("POST "+proxy.Prefix+"/api/webhook", hook) // authenticated by token, not by Immich session
 	mux.Handle(proxy.Prefix+"/", web.Handler(proxy.Prefix))
 	mux.Handle(proxy.Prefix+"/api/", apiHandler)
 	mux.Handle("GET "+proxy.Prefix+"/healthz", px)

@@ -66,7 +66,21 @@ location / {
 
 immich-flows passes `Host` through and sets `X-Forwarded-*`. Uploads and downloads are streamed, not buffered.
 
-## Configuration
+## Assets added outside immich-flows
+
+External libraries, server-side imports and clients that talk to Immich directly bypass the proxy. To run `asset.uploaded` flows for them, each user creates an Immich workflow (Immich ≥ v3) with trigger `AssetCreate` and the built-in step **Trigger Webhook**:
+
+| Setting | Value |
+| --- | --- |
+| URL | `http://immich-flows:2283/_flows/api/webhook` (as Immich reaches immich-flows) |
+| Header name | `X-Immich-Flows-Token` |
+| Header value | the user's token, shown at `/_flows/` |
+
+- The token is per user; events are accepted only for that user's assets.
+- Webhook events are processed after 30 s; uploads that went through immich-flows are not reported twice.
+- These events have `trigger.data.source: webhook` and no original hashes (`hash` with `source: original` fails).
+
+
 
 Environment variables: [README](../README.md#configuration).
 
