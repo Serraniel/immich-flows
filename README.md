@@ -2,14 +2,14 @@
 
 Workflow automation for [Immich](https://immich.app). Runs as a drop-in proxy in front of Immich, with flows defined in YAML or a visual editor.
 
-> **Status:** early development. Not usable yet. See [milestones](https://github.com/serraniel/immich-flows/milestones).
+> **Status:** early development, pre-1.0: flow syntax and API may change. See [milestones](https://github.com/serraniel/immich-flows/milestones).
 
-## Features (planned)
+## Features
 
 - Triggers: asset uploaded, trashed/deleted, duplicates resolved, tag assigned/removed
 - Actions: assign/remove/read tags, compute file hashes (MD5, SHA-1, SHA-256, SHA-512), parse filenames
 - Hashes the **original** upload before any converter (e.g. [immich-upload-optimizer](https://github.com/miguelangel-nubla/immich-upload-optimizer)) touches it
-- Flow editor: YAML and visual, same model
+- Flow editor: YAML with completion and validation (visual editor planned)
 - Bulk tag tools: rename, move (`XX` → `YY/XX`), merge
 - Targets the latest Immich major only (currently v3)
 
@@ -34,7 +34,7 @@ services:
 
 The container runs as UID `65532`. For bind mounts: `mkdir -p immich-flows/flows && sudo chown -R 65532:65532 immich-flows`.
 
-With a converter (immich-flows → upload optimizer → Immich): see [examples/compose.yaml](examples/compose.yaml).
+With a converter, behind a reverse proxy, backups and upgrades: [docs/install.md](docs/install.md).
 
 Image tags: `latest`, `X.Y.Z`, `X.Y`, `edge` (main branch).
 
@@ -57,6 +57,7 @@ Open `https://<your-immich>/_flows/` and click **Connect**. This creates an Immi
 
 ## Docs
 
+- [Install](docs/install.md)
 - [Architecture](docs/architecture.md)
 - [Flows](docs/flows.md), [Cookbook](docs/cookbook.md)
 - [Tag tools](docs/tags.md)
