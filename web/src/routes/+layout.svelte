@@ -18,6 +18,7 @@
 		<a href={resolve('/')}>Overview</a>
 		<a href={resolve('/runs')}>Runs</a>
 		<a href={resolve('/tags')}>Tags</a>
+		{#if data.user?.isAdmin}<a href={resolve('/flows')}>Flows</a>{/if}
 	</nav>
 	<span>
 		{#if data.user}{data.user.name}{/if}
