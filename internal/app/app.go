@@ -61,6 +61,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	eng := engine.New(reg, db, flowDir, engine.Deps{
 		Immich:    clients,
 		LoadAsset: engine.ImmichAssets(clients),
+		HTTPAllow: cfg.HTTPAllow,
 	}, log)
 	eng.Register(jobs)
 

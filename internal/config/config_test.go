@@ -9,6 +9,13 @@ func env(m map[string]string) func(string) string {
 	return func(k string) string { return m[k] }
 }
 
+func TestHTTPAllow(t *testing.T) {
+	c, err := load(env(map[string]string{"IMMICH_FLOWS_UPSTREAM_URL": "http://a:1", "IMMICH_FLOWS_HTTP_ALLOW": " API.example.com, *.svc ,,"}))
+	if err != nil || len(c.HTTPAllow) != 2 || c.HTTPAllow[0] != "api.example.com" || c.HTTPAllow[1] != "*.svc" {
+		t.Errorf("%v %q", err, c.HTTPAllow)
+	}
+}
+
 func TestLoadDefaults(t *testing.T) {
 	c, err := load(env(map[string]string{"IMMICH_FLOWS_UPSTREAM_URL": "http://immich-server:2283"}))
 	if err != nil {

@@ -72,6 +72,64 @@
           "if": {
             "properties": {
               "use": {
+                "const": "http"
+              }
+            },
+            "required": [
+              "use"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "properties": {
+                  "body": {
+                    "description": "String, or any other value sent as JSON"
+                  },
+                  "failOnError": {
+                    "default": true,
+                    "description": "Fail on status \u003e= 400 (5xx and 429 are retried). If false, the status is in the output",
+                    "type": "boolean"
+                  },
+                  "headers": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "enum": [
+                      "GET",
+                      "POST",
+                      "PUT",
+                      "PATCH",
+                      "DELETE"
+                    ],
+                    "type": "string"
+                  },
+                  "timeout": {
+                    "description": "Seconds, default 30, max 120",
+                    "type": "integer"
+                  },
+                  "url": {
+                    "description": "http(s) URL",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "use": {
                 "const": "log"
               }
             },
@@ -438,6 +496,10 @@
             {
               "const": "hash",
               "description": "File hashes (hex). original: as uploaded by the client (asset.uploaded only). stored: as stored in Immich."
+            },
+            {
+              "const": "http",
+              "description": "Call an HTTP endpoint. Hosts must be listed in IMMICH_FLOWS_HTTP_ALLOW."
             },
             {
               "const": "log",
