@@ -184,3 +184,23 @@ func TestSnoozeDoesNotCountAttempts(t *testing.T) {
 	_, _ = q.Enqueue(context.Background(), "k", nil)
 	waitStatus(t, q, "done", 1)
 }
+
+func TestDBErrorReceivesHandlerErrors(t *testing.T) {
+	opts := fast()
+	var mu sync.Mutex
+	var got []error
+	opts.DBError = func(err error) { mu.Lock(); got = append(got, err); mu.Unlock() }
+	q := New(openDB(t), slog.New(slog.DiscardHandler), opts)
+	boom := errors.New("boom")
+	q.Handle("k", func(context.Context, Job) error { return Permanent(boom) })
+	start(t, q)
+	if _, err := q.Enqueue(context.Background(), "k", 1); err != nil {
+		t.Fatal(err)
+	}
+	waitStatus(t, q, "dead", 1)
+	mu.Lock()
+	defer mu.Unlock()
+	if len(got) != 1 || !errors.Is(got[0], boom) {
+		t.Errorf("DBError got %v", got)
+	}
+}

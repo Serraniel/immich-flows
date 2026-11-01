@@ -64,6 +64,8 @@ type Deps struct {
 	HTTPAllow []string
 	// HTTP is the client for the http step; nil means http.DefaultClient's transport.
 	HTTP *http.Client
+	// DBError, if set, is called with errors from recording runs.
+	DBError func(error)
 }
 
 // Engine dispatches events to flows and executes runs.
@@ -78,6 +80,9 @@ type Engine struct {
 
 // New returns an Engine.
 func New(reg *Registry, db *sql.DB, flows FlowSource, deps Deps, log *slog.Logger) *Engine {
+	if deps.DBError == nil {
+		deps.DBError = func(error) {}
+	}
 	return &Engine{reg: reg, db: db, flows: flows, deps: deps, log: log, now: time.Now}
 }
 
@@ -178,6 +183,7 @@ func (e *Engine) Execute(ctx context.Context, req RunRequest) error {
 	runErr := r.steps(ctx, f.Steps)
 	if err := r.finish(runErr); err != nil {
 		e.log.Error("record run", "flow", f.ID, "err", err)
+		e.deps.DBError(err)
 	}
 	if runErr != nil {
 		e.log.Warn("run failed", "flow", f.ID, "run", r.id, "asset", req.AssetID, "err", runErr)
@@ -354,6 +360,7 @@ func (r *run) record(s *flow.Step, status string, out map[string]any, stepErr er
 		r.id, r.seq, nullable(s.ID), s.Use, status, outJSON, errMsg, started.UnixMilli(), r.e.now().Sub(started).Milliseconds())
 	if err != nil {
 		r.e.log.Error("record step", "run", r.id, "err", err)
+		r.e.deps.DBError(err)
 	}
 }
 

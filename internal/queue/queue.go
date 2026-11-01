@@ -49,6 +49,8 @@ type Options struct {
 	MaxBackoff  time.Duration // default 1h
 	Poll        time.Duration // default 1s
 	Retention   time.Duration // done jobs are deleted after this; default 7 days
+	// DBError, if set, is called with database errors and handler errors.
+	DBError func(error)
 }
 
 // Queue stores jobs and runs them with registered handlers.
@@ -83,6 +85,9 @@ func New(db *sql.DB, log *slog.Logger, opts Options) *Queue {
 	if opts.Retention <= 0 {
 		opts.Retention = 7 * 24 * time.Hour
 	}
+	if opts.DBError == nil {
+		opts.DBError = func(error) {}
+	}
 	return &Queue{db: db, log: log, opts: opts, now: time.Now, handlers: map[string]Handler{}, wake: make(chan struct{}, 1)}
 }
 
@@ -116,6 +121,7 @@ func (q *Queue) Enqueue(ctx context.Context, kind string, payload any) (int64, e
 // Run processes jobs until ctx is cancelled. Jobs left running by a previous process are retried.
 func (q *Queue) Run(ctx context.Context) error {
 	if _, err := q.db.ExecContext(ctx, `UPDATE jobs SET status = 'pending' WHERE status = 'running'`); err != nil {
+		q.opts.DBError(err)
 		return err
 	}
 	var wg sync.WaitGroup
@@ -136,6 +142,7 @@ func (q *Queue) worker(ctx context.Context) {
 			if err != nil {
 				if ctx.Err() == nil {
 					q.log.Error("claim job", "err", err)
+					q.opts.DBError(err)
 				}
 				break
 			}
@@ -179,6 +186,9 @@ func (q *Queue) process(ctx context.Context, j Job) {
 		err = Permanent(fmt.Errorf("no handler for kind %q", j.Kind))
 	} else {
 		err = safe(ctx, h, j)
+		if err != nil {
+			q.opts.DBError(err)
+		}
 	}
 	if ctx.Err() != nil && err != nil {
 		// Shutdown: leave as running; Run resets it on next start.
@@ -207,6 +217,7 @@ func (q *Queue) process(ctx context.Context, j Job) {
 	}
 	if err != nil {
 		q.log.Error("record job result", "id", j.ID, "err", err)
+		q.opts.DBError(err)
 	}
 }
 
