@@ -37,7 +37,16 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
 		return err
 	}
-	db, err := store.Open(ctx, filepath.Join(cfg.DataDir, "immich-flows.db"))
+	dbPath := filepath.Join(cfg.DataDir, "immich-flows.db")
+	dbMon := store.NewMonitor(dbPath, log)
+	dbError := func(error) {}
+	if cfg.DBRepair {
+		if err := store.Check(ctx, dbPath, log); err != nil {
+			return err
+		}
+		dbError = dbMon.Observe
+	}
+	db, err := store.Open(ctx, dbPath)
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
@@ -58,12 +67,13 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	}
 	go flowDir.Watch(ctx, 2*time.Second)
 
-	jobs := queue.New(db, log, queue.Options{Workers: cfg.Workers})
+	jobs := queue.New(db, log, queue.Options{Workers: cfg.Workers, DBError: dbError})
 	clients := userClients(conn, log)
 	eng := engine.New(reg, db, flowDir, engine.Deps{
 		Immich:    clients,
 		LoadAsset: engine.ImmichAssets(clients),
 		HTTPAllow: cfg.HTTPAllow,
+		DBError:   dbError,
 	}, log)
 	eng.Register(jobs)
 
@@ -126,9 +136,12 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 		errc <- srv.ListenAndServe()
 	}()
 
+	var exitErr error
 	select {
 	case err := <-errc:
 		return err
+	case <-dbMon.Corrupt():
+		exitErr = errors.New("database corrupt: exiting so that it is checked and repaired at the next start")
 	case <-ctx.Done():
 	}
 	shutdown, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -136,7 +149,7 @@ func Run(ctx context.Context, cfg *config.Config, log *slog.Logger, version stri
 	if err := srv.Shutdown(shutdown); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
-	return nil
+	return exitErr
 }
 
 // userClients returns Immich clients acting as a connected user. Runs for unconnected users are

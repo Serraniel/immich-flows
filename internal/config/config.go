@@ -27,6 +27,8 @@ type Config struct {
 	TrashInterval time.Duration
 	// HTTPAllow lists hosts the http step may call.
 	HTTPAllow []string
+	// DBRepair checks the database at start and repairs it if corrupt.
+	DBRepair bool
 }
 
 // Load reads the configuration from the environment.
@@ -65,6 +67,9 @@ func load(getenv func(string) string) (*Config, error) {
 	}
 	if c.TrashInterval, err = time.ParseDuration(get("IMMICH_FLOWS_TRASH_INTERVAL", "10m")); err != nil || c.TrashInterval < time.Second {
 		return nil, fmt.Errorf("IMMICH_FLOWS_TRASH_INTERVAL: must be a duration of at least 1s, e.g. 10m")
+	}
+	if c.DBRepair, err = strconv.ParseBool(get("IMMICH_FLOWS_DB_REPAIR", "true")); err != nil {
+		return nil, fmt.Errorf("IMMICH_FLOWS_DB_REPAIR: must be true or false")
 	}
 	for h := range strings.SplitSeq(get("IMMICH_FLOWS_HTTP_ALLOW", ""), ",") {
 		if h = strings.ToLower(strings.TrimSpace(h)); h != "" {

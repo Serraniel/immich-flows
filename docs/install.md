@@ -91,8 +91,30 @@ Environment variables: [README](../README.md#configuration).
 | `immich-flows.db` | SQLite: job queue, run log, connections |
 | `secret.key` | encrypts stored Immich API keys (unless `IMMICH_FLOWS_SECRET` is set) |
 | `flows/` | flow files |
+| `backups/` | copies of a corrupt database taken before automatic repair (newest 3) |
 
 Back up `/data` together. Without the secret, stored API keys cannot be decrypted: users must connect again.
+
+Keep the database on a local filesystem with free space. SQLite on network shares (SMB/CIFS, NFS) or full disks can corrupt it.
+
+## Database corruption
+
+With `IMMICH_FLOWS_DB_REPAIR=true` (default):
+
+- At start, `PRAGMA quick_check` runs on the database. If it fails, the database files are copied to `/data/backups/<time>/`, then repaired: indexes are rebuilt (no data loss) or, if that is not enough, every readable row is copied into a new database. Unreadable rows (usually run history) are lost; orphaned rows are removed. The log lists rows copied per table. If `connections` lost rows, those users must connect again.
+- At runtime, a corruption error writes `immich-flows.db.corrupt` and stops the service. On the next start (Docker restart policy), a full `PRAGMA integrity_check` runs instead.
+- If repair fails, the service does not start and writes `immich-flows.db.repair-failed`. It is not retried until that file is removed.
+
+Manual repair (service stopped, in the data directory):
+
+```sh
+docker run --rm -v "$PWD:/data" alpine sh -c '
+  apk add -q sqlite && cd /data &&
+  sqlite3 immich-flows.db ".recover" | sqlite3 recovered.db &&
+  sqlite3 recovered.db "DROP TABLE IF EXISTS lost_and_found; PRAGMA integrity_check;"'
+```
+
+If it prints `ok`: move `immich-flows.db`, `immich-flows.db-wal`, `immich-flows.db-shm` and `immich-flows.db.repair-failed` away, rename `recovered.db` to `immich-flows.db` and give it to UID 65532.
 
 ## Upgrades
 
