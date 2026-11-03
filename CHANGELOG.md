@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/Serraniel/immich-flows/compare/v0.1.0...v0.2.0) (2026-11-01)
+
+
+### Features
+
+* **store:** check and repair a corrupt database at start ([#103](https://github.com/Serraniel/immich-flows/issues/103)) ([673f7d2](https://github.com/Serraniel/immich-flows/commit/673f7d2a1d0debc5167cf839c9065168351f4897))
+
 ## 0.1.0 (2026-10-17)
 
 
