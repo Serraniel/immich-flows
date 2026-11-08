@@ -8,9 +8,9 @@ require (
 	github.com/expr-lang/expr v1.17.8
 	github.com/invopop/jsonschema v0.14.0
 	github.com/oapi-codegen/runtime v1.8.0
-	go.yaml.in/yaml/v3 v3.0.5
+	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/sync v0.24.0
-	modernc.org/sqlite v1.61.0
+	modernc.org/sqlite v1.61.1
 )
 
 require (
