@@ -188,6 +188,7 @@ const (
 	BackupDownload            Permission = "backup.download"
 	BackupList                Permission = "backup.list"
 	BackupUpload              Permission = "backup.upload"
+	ClusterGroupAdmin         Permission = "clusterGroup.admin"
 	ClusterGroupLeave         Permission = "clusterGroup.leave"
 	ClusterGroupRead          Permission = "clusterGroup.read"
 	ClusterGroupRequestCreate Permission = "clusterGroupRequest.create"
@@ -225,6 +226,9 @@ const (
 	PartnerDelete             Permission = "partner.delete"
 	PartnerRead               Permission = "partner.read"
 	PartnerUpdate             Permission = "partner.update"
+	PasskeyDelete             Permission = "passkey.delete"
+	PasskeyRead               Permission = "passkey.read"
+	PasskeyUpdate             Permission = "passkey.update"
 	PersonCreate              Permission = "person.create"
 	PersonDelete              Permission = "person.delete"
 	PersonMerge               Permission = "person.merge"
@@ -415,6 +419,8 @@ func (e Permission) Valid() bool {
 		return true
 	case BackupUpload:
 		return true
+	case ClusterGroupAdmin:
+		return true
 	case ClusterGroupLeave:
 		return true
 	case ClusterGroupRead:
@@ -488,6 +494,12 @@ func (e Permission) Valid() bool {
 	case PartnerRead:
 		return true
 	case PartnerUpdate:
+		return true
+	case PasskeyDelete:
+		return true
+	case PasskeyRead:
+		return true
+	case PasskeyUpdate:
 		return true
 	case PersonCreate:
 		return true
@@ -1737,6 +1749,9 @@ type SearchResponseDto struct {
 
 // ServerVersionResponseDto defines model for ServerVersionResponseDto.
 type ServerVersionResponseDto struct {
+	// FeatureLevel Highest feature level supported by the server, which increments independently of the release version
+	FeatureLevel int `json:"featureLevel"`
+
 	// Major Major version number
 	Major int `json:"major"`
 
@@ -1990,8 +2005,6 @@ type UpsertTagsJSONRequestBody = TagUpsertDto
 type BulkTagAssetsJSONRequestBody = TagBulkAssetsDto
 
 // UpdateTagJSONRequestBody defines body for UpdateTag for application/json ContentType.
-//
-// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type UpdateTagJSONRequestBody = TagUpdateDto
 
 // UntagAssetsJSONRequestBody defines body for UntagAssets for application/json ContentType.
@@ -2259,8 +2272,6 @@ type ClientInterface interface {
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with PUT /tags/{id} (the `UpdateTag` operationId).
-	//
-	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	UpdateTagWithBody(ctx context.Context, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateTag Update a tag
@@ -2270,8 +2281,6 @@ type ClientInterface interface {
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with PUT /tags/{id} (the `UpdateTag` operationId).
-	//
-	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	UpdateTag(ctx context.Context, id openapi_types.UUID, body UpdateTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UntagAssetsWithBody Untag assets
@@ -2723,7 +2732,6 @@ func (c *Client) GetTagById(ctx context.Context, id openapi_types.UUID, reqEdito
 // Takes any type of body and a specified content type.
 //
 // Corresponds with PUT /tags/{id} (the `UpdateTag` operationId).
-// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *Client) UpdateTagWithBody(ctx context.Context, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateTagRequestWithBody(c.Server, id, contentType, body)
 	if err != nil {
@@ -2743,7 +2751,6 @@ func (c *Client) UpdateTagWithBody(ctx context.Context, id openapi_types.UUID, c
 // Takes a body of the `application/json` content type.
 //
 // Corresponds with PUT /tags/{id} (the `UpdateTag` operationId).
-// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *Client) UpdateTag(ctx context.Context, id openapi_types.UUID, body UpdateTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateTagRequest(c.Server, id, body)
 	if err != nil {
@@ -3954,8 +3961,6 @@ type ClientWithResponsesInterface interface {
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PUT /tags/{id} (the `UpdateTag` operationId).
-	//
-	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	UpdateTagWithBodyWithResponse(ctx context.Context, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateTagResponse, error)
 
 	// UpdateTagWithResponse Update a tag
@@ -3965,8 +3970,6 @@ type ClientWithResponsesInterface interface {
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PUT /tags/{id} (the `UpdateTag` operationId).
-	//
-	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	UpdateTagWithResponse(ctx context.Context, id openapi_types.UUID, body UpdateTagJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateTagResponse, error)
 
 	// UntagAssetsWithBodyWithResponse Untag assets
@@ -5151,8 +5154,6 @@ func (c *ClientWithResponses) GetTagByIdWithResponse(ctx context.Context, id ope
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with PUT /tags/{id} (the `UpdateTag` operationId).
-//
-// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *ClientWithResponses) UpdateTagWithBodyWithResponse(ctx context.Context, id openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateTagResponse, error) {
 	rsp, err := c.UpdateTagWithBody(ctx, id, contentType, body, reqEditors...)
 	if err != nil {
@@ -5168,7 +5169,6 @@ func (c *ClientWithResponses) UpdateTagWithBodyWithResponse(ctx context.Context,
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with PUT /tags/{id} (the `UpdateTag` operationId).
-// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *ClientWithResponses) UpdateTagWithResponse(ctx context.Context, id openapi_types.UUID, body UpdateTagJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateTagResponse, error) {
 	rsp, err := c.UpdateTag(ctx, id, body, reqEditors...)
 	if err != nil {
