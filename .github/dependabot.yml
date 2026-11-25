@@ -1,3 +1,5 @@
+# Updates to shipped code (Go modules, UI runtime packages, base images) use fix(deps) so that
+# release-please releases them; tooling-only updates use chore/ci and do not. Applies to security updates too.
 version: 2
 updates:
   - package-ecosystem: gomod
@@ -5,7 +7,7 @@ updates:
     schedule:
       interval: weekly
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "fix(deps)"
     groups:
       go:
         patterns: ["*"]
@@ -18,10 +20,16 @@ updates:
       # TypeScript 7 is not yet supported by svelte-check and typescript-eslint.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+    # "dependencies" are bundled into the UI, "devDependencies" are build and test tooling.
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "fix(deps)"
+      prefix-development: "chore(deps)"
     groups:
       web:
+        dependency-type: production
+        patterns: ["*"]
+      web-dev:
+        dependency-type: development
         patterns: ["*"]
 
   - package-ecosystem: github-actions
@@ -43,4 +51,4 @@ updates:
       - dependency-name: node
         update-types: ["version-update:semver-major"]
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "fix(deps)"

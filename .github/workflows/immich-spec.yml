@@ -39,6 +39,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git commit -am "chore(immich): update API spec to $TAG"
+          # fix: releases a new version; only if the generated client (shipped code) changed.
+          type=chore
+          git diff --quiet -- '*.gen.go' || type=fix
+          git commit -am "$type(immich): update API spec to $TAG"
           git push origin "$branch"
           gh pr create --fill --body "Spec update to Immich $TAG. CI does not run on bot PRs: close and reopen to trigger it."
