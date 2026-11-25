@@ -32,6 +32,7 @@ npm run build   # then go build serves it under /_flows/
 1. Open or pick an issue. Larger changes: discuss first.
 2. Branch from `main`, one topic per PR.
 3. PR title follows [Conventional Commits](https://www.conventionalcommits.org) (`feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `refactor:`, `test:`, `perf:`). It becomes the squash commit and drives releases and the changelog. Breaking: `feat!:`.
+   Dependency updates: `fix(deps):` if shipped code changes (Go modules, UI `dependencies`, base images), else `chore(deps):`. `chore:` and `ci:` do not create a release.
 4. CI must pass.
 
 ## Style
