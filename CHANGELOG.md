@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1](https://github.com/Serraniel/immich-flows/compare/v0.2.0...v0.2.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* **deps:** bump the go group with 2 updates (modernc.org/sqlite 1.61.1, go.yaml.in/yaml/v3 3.0.6) ([7d9ea54](https://github.com/Serraniel/immich-flows/commit/7d9ea547f2ad0bd38a41112970868c4152f8c354))
+* **deps:** bump the go group with 3 updates ([#117](https://github.com/Serraniel/immich-flows/issues/117)) ([c525895](https://github.com/Serraniel/immich-flows/commit/c525895ea7ae9d506afe41ce55341022624866ef))
+* **deps:** bump the go group with 3 updates (modernc.org/sqlite 1.62.0, oapi-codegen runtime 1.9.0, x/sync 0.25.0) ([a41f82e](https://github.com/Serraniel/immich-flows/commit/a41f82ef5dbd1c48c6ef5352d3683a647596dd46))
+* **deps:** bump the web group in /web with 2 updates ([#118](https://github.com/Serraniel/immich-flows/issues/118)) ([1960673](https://github.com/Serraniel/immich-flows/commit/1960673ea4d7096f068ec82d3b44ce21d1ddccef))
+* **deps:** bump the web group with 4 updates (@sveltejs/kit 3.2.0) ([d2473f0](https://github.com/Serraniel/immich-flows/commit/d2473f007506938dff715f9ab2271524beb38bb1))
+* **deps:** bump the web group with 6 updates ([#113](https://github.com/Serraniel/immich-flows/issues/113)) ([e958baa](https://github.com/Serraniel/immich-flows/commit/e958baae9c2518b87cb7b8e9c7feb1df6931e9df))
+* **deps:** bump the web group with 9 updates (@sveltejs/kit 3.1.1, @xyflow/svelte 1.7.1) ([d89cfad](https://github.com/Serraniel/immich-flows/commit/d89cfad130555a819e168fa418cadae53a89d805))
+* **immich:** update API spec to v3.4.1 ([9f55819](https://github.com/Serraniel/immich-flows/commit/9f55819a34bfe4232c490aafed0c8cf3abf93117))
+
 ## [0.2.0](https://github.com/Serraniel/immich-flows/compare/v0.1.0...v0.2.0) (2026-11-01)
 
 
