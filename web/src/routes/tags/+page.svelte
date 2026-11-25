@@ -110,9 +110,9 @@
 				run({ type: 'bulk', input: { ...bulk } }, true);
 			}}
 		>
-			<label
-				>Match (regex) <input bind:value={bulk.match} required placeholder="^service-a/" /></label
-			>
+			<label>
+				Match (regex) <input bind:value={bulk.match} required placeholder="^service-a/" />
+			</label>
 			<label>Replace <input bind:value={bulk.replace} placeholder="services/a/" /></label>
 			<button disabled={busy}>Preview</button>
 		</form>

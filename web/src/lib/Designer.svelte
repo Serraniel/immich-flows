@@ -205,7 +205,6 @@
 				bind:edges
 				{nodeTypes}
 				fitView
-				colorMode="system"
 				nodesConnectable={false}
 				deleteKey={null}
 				onnodeclick={({ node }) =>
@@ -264,9 +263,12 @@
 				</label>
 				<p class="actions">
 					<button disabled={path.at(-1) === 0} onclick={() => shift(path, -1)}>←</button>
-					<button disabled={(path.at(-1) as number) >= len(path) - 1} onclick={() => shift(path, 1)}
-						>→</button
+					<button
+						disabled={(path.at(-1) as number) >= len(path) - 1}
+						onclick={() => shift(path, 1)}
 					>
+						→
+					</button>
 					<button onclick={() => remove(path)}>Delete case</button>
 				</p>
 			{:else}
@@ -280,24 +282,18 @@
 						{#each steps as c (c.value)}<option>{c.value}</option>{/each}
 					</select>
 				</label>
-				<label
-					>id <input
-						value={s.id ?? ''}
-						onchange={(e) => field(path, 'id', e.currentTarget.value)}
-					/></label
-				>
-				<label
-					>name <input
+				<label>
+					id <input value={s.id ?? ''} onchange={(e) => field(path, 'id', e.currentTarget.value)} />
+				</label>
+				<label>
+					name <input
 						value={s.name ?? ''}
 						onchange={(e) => field(path, 'name', e.currentTarget.value)}
-					/></label
-				>
-				<label
-					>if <input
-						value={s.if ?? ''}
-						onchange={(e) => field(path, 'if', e.currentTarget.value)}
-					/></label
-				>
+					/>
+				</label>
+				<label>
+					if <input value={s.if ?? ''} onchange={(e) => field(path, 'if', e.currentTarget.value)} />
+				</label>
 				<label class="inline">
 					<input
 						type="checkbox"
@@ -320,9 +316,12 @@
 				{/if}
 				<p class="actions">
 					<button disabled={path.at(-1) === 0} onclick={() => shift(path, -1)}>↑</button>
-					<button disabled={(path.at(-1) as number) >= len(path) - 1} onclick={() => shift(path, 1)}
-						>↓</button
+					<button
+						disabled={(path.at(-1) as number) >= len(path) - 1}
+						onclick={() => shift(path, 1)}
 					>
+						↓
+					</button>
 					<button onclick={() => remove(path)}>Delete</button>
 				</p>
 			{/if}

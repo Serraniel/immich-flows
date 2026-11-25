@@ -106,9 +106,9 @@
 						</td>
 						<td class="row-actions">
 							{#if e.flow && !e.error && e.flow.enabled !== false}
-								<button title="Run on all your existing assets" onclick={() => backfill(e)}
-									>Run on all</button
-								>
+								<button title="Run on all your existing assets" onclick={() => backfill(e)}>
+									Run on all
+								</button>
 							{/if}
 							<button onclick={() => exportFlow(e)}>Export</button>
 							<button onclick={() => remove(e)}>Delete</button>
