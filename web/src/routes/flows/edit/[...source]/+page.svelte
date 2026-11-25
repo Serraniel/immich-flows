@@ -73,10 +73,10 @@
 		{#if mode === 'yaml'}
 			<FlowEditor bind:value={yaml} source={name} schema={data.schema} onsave={save} />
 			<p>
-				<small
-					>Ctrl+Space completes keys and values. Problems are checked on the server as you type;
-					invalid flows are not saved.</small
-				>
+				<small>
+					Ctrl+Space completes keys and values. Problems are checked on the server as you type;
+					invalid flows are not saved.
+				</small>
 			</p>
 		{:else if data.schema}
 			{#await import('#lib/Designer.svelte') then { default: Designer }}

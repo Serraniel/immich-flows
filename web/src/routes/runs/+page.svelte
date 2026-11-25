@@ -43,11 +43,11 @@
 {:else}
 	<table>
 		<thead>
-			<tr
-				><th>#</th><th>Flow</th><th>Event</th><th>Asset</th><th>Status</th><th>Started</th><th
-					>Took</th
-				></tr
-			>
+			<tr>
+				<th>#</th><th>Flow</th><th>Event</th><th>Asset</th><th>Status</th><th>Started</th><th>
+					Took
+				</th>
+			</tr>
 		</thead>
 		<tbody>
 			{#each runs as run (run.id)}
