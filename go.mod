@@ -5,12 +5,12 @@ go 1.27
 tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 
 require (
-	github.com/expr-lang/expr v1.17.8
+	github.com/expr-lang/expr v1.18.1
 	github.com/invopop/jsonschema v0.14.0
-	github.com/oapi-codegen/runtime v1.9.0
+	github.com/oapi-codegen/runtime v1.9.1
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/sync v0.25.0
-	modernc.org/sqlite v1.62.0
+	modernc.org/sqlite v1.63.0
 )
 
 require (
